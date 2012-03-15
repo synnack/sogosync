@@ -3,46 +3,50 @@ SOGoSync
 
 Description
 -----------
+
 sogosync is Z-Push - Open Source ActiveSync (svn upstream) with caldav and cardav backend.
 
 Features
 --------
+
 * Add ActiveSync caldav support with multiple calendar using a caldav server
 * Add ActiveSync carddav support with multiple addressbook using a carddav server
 
+
 Requirement
 -----------
-* A working caldav/carddav server (e.g. SOGo)
-
-        - Did not test but should work with any caldav/cardav groupware, feedback welcome.
+* A working caldav/carddav server (e.g. SOGo,ownCloud,SabreDAV)
+        * Did not test other than SOGo but it should work with any caldav/cardav groupware, feedback welcome.
 * An ActiveSync compatible mobile device
 	* [Comparison of Exchange ActiveSync clients](http://en.wikipedia.org/wiki/Comparison_of_Exchange_ActiveSync_clients)
 * PHP5 with the following library for a Debian system
 
-     $ apt-get install php5-curl php5-ldap php5-imap php5-mail libawl-php
+        $ apt-get install php5-curl php5-ldap php5-imap php5-mail libawl-php
+
 
 Thanks
 ------
+
 SOGoSync is possible thanks to the following projects:
 
 * [Open Groupware](http://www.sogo.nu/)
 * [ActiveSync implementation](http://z-push.sourceforge.net/soswp)
 * [CardDAV-PHP](https://github.com/graviox/CardDAV-PHP)
 
+
 See also
 ------
 * Cardav and Caldav RFC:
-
         - http://tools.ietf.org/html/rfc6350
         - http://tools.ietf.org/html/rfc2425
         - http://tools.ietf.org/html/rfc4791
         - http://tools.ietf.org/html/rfc2426
 * ActiveSync Contact and Calendar Protocol Specification
-
         - http://msdn.microsoft.com/en-us/library/cc425499%28EXCHG.80%29.aspx
 	- http://msdn.microsoft.com/en-us/library/dd299451(v=exchg.80).aspx
 	- http://msdn.microsoft.com/en-us/library/dd299440(v=exchg.80).aspx
 	- http://msdn.microsoft.com/en-us/library/cc463911(v=exchg.80).aspx
+
 
 Library used
 ------------
@@ -59,6 +63,7 @@ Installation
     $ cd sogosync
 
 Read z-push install instruction into INSTALL file or [Configure Z-Push (Remote ActiveSync for Mobile Devices)](http://doc.zarafa.com/7.0/Administrator_Manual/en-US/html/_zpush.html)
+
 
 Configuration
 -------------
@@ -78,12 +83,11 @@ File 'backend/combined/config.inc.php' is the original file from z-push svn repo
  * Configure the BackendCARDDAV settings section
  * Configure the BackendCALDAV settings section
 
-Nothing more to edit.
-
 ### Edit backend/searchldap/config.php
  * To get GAL search support from your LDAP tree.
 
 The configuration is pre-configure to work with the [SOGo Online Demo](http://www.sogo.nu/english/tour/online_demo.html)
+
 
 Test
 ----
@@ -95,12 +99,14 @@ You need to see a wegpage "Z-Push - Open Source ActiveSync" with "GET not suppor
 
 If so, congratulations!
 
+
 Update
 ------
 To update to the latest version:
 
     $ cd /var/www/sogosync
     $ git pull
+
 
 Contributing
 ------------
