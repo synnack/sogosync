@@ -20,7 +20,6 @@ Requirement
 
     $ apt-get install php5-curl php5-ldap php5-imap php5-mail libawl-php
 
-
 Thanks
 ------
 SOGoSync is possible thanks to the following projects:
@@ -31,16 +30,16 @@ SOGoSync is possible thanks to the following projects:
 
 See also
 ------
-* Cardav and Caldav RFC
-        * http://tools.ietf.org/html/rfc6350
-        * http://tools.ietf.org/html/rfc2425
-        * http://tools.ietf.org/html/rfc4791
-        * http://tools.ietf.org/html/rfc2426
+* Cardav and Caldav RFC:
+        - http://tools.ietf.org/html/rfc6350
+        - http://tools.ietf.org/html/rfc2425
+        - http://tools.ietf.org/html/rfc4791
+        - http://tools.ietf.org/html/rfc2426
 * ActiveSync Contact and Calendar Protocol Specification
-        * http://msdn.microsoft.com/en-us/library/cc425499%28EXCHG.80%29.aspx
-	* http://msdn.microsoft.com/en-us/library/dd299451(v=exchg.80).aspx
-	* http://msdn.microsoft.com/en-us/library/dd299440(v=exchg.80).aspx
-	* http://msdn.microsoft.com/en-us/library/cc463911(v=exchg.80).aspx
+        - http://msdn.microsoft.com/en-us/library/cc425499%28EXCHG.80%29.aspx
+	- http://msdn.microsoft.com/en-us/library/dd299451(v=exchg.80).aspx
+	- http://msdn.microsoft.com/en-us/library/dd299440(v=exchg.80).aspx
+	- http://msdn.microsoft.com/en-us/library/cc463911(v=exchg.80).aspx
 
 Library used
 ------------
@@ -53,7 +52,7 @@ Library used
 Installation
 ------------
     $ cd /var/www
-    $ git clone git://github.com/xbgmsharp/sogosync.git
+    $ git clone https://github.com/xbgmsharp/sogosync.git
     $ cd sogosync
 
 Read z-push install instruction into INSTALL file or [Configure Z-Push (Remote ActiveSync for Mobile Devices)](http://doc.zarafa.com/7.0/Administrator_Manual/en-US/html/_zpush.html)
