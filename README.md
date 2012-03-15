@@ -13,12 +13,13 @@ Features
 Requirement
 -----------
 * A working caldav/carddav server (e.g. SOGo)
-        * Did not test but should work with any caldav/cardav groupware, feedback welcome.
+
+        - Did not test but should work with any caldav/cardav groupware, feedback welcome.
 * An ActiveSync compatible mobile device
 	* [Comparison of Exchange ActiveSync clients](http://en.wikipedia.org/wiki/Comparison_of_Exchange_ActiveSync_clients)
-* PHP5 with the following library for a Debian system:
+* PHP5 with the following library for a Debian system
 
-    $ apt-get install php5-curl php5-ldap php5-imap php5-mail libawl-php
+     $ apt-get install php5-curl php5-ldap php5-imap php5-mail libawl-php
 
 Thanks
 ------
@@ -31,11 +32,13 @@ SOGoSync is possible thanks to the following projects:
 See also
 ------
 * Cardav and Caldav RFC:
+
         - http://tools.ietf.org/html/rfc6350
         - http://tools.ietf.org/html/rfc2425
         - http://tools.ietf.org/html/rfc4791
         - http://tools.ietf.org/html/rfc2426
 * ActiveSync Contact and Calendar Protocol Specification
+
         - http://msdn.microsoft.com/en-us/library/cc425499%28EXCHG.80%29.aspx
 	- http://msdn.microsoft.com/en-us/library/dd299451(v=exchg.80).aspx
 	- http://msdn.microsoft.com/en-us/library/dd299440(v=exchg.80).aspx
