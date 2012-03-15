@@ -1,6 +1,3 @@
-[submodule "CardDAV-PHP"]
-	path = CardDAV-PHP
-	url = git@github.com:xbgmsharp/CardDAV-PHP.git
 [submodule "include/CardDAV-PHP"]
 	path = include/CardDAV-PHP
 	url = git@github.com:xbgmsharp/CardDAV-PHP.git
