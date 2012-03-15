@@ -35,22 +35,24 @@ SOGoSync is possible thanks to the following projects:
 
 
 See also
-------
+-------
+
 * Cardav and Caldav RFC:
-        * http://tools.ietf.org/html/rfc6350
-        * http://tools.ietf.org/html/rfc2425
-        * http://tools.ietf.org/html/rfc4791
-        * http://tools.ietf.org/html/rfc2426
+  * http://tools.ietf.org/html/rfc6350
+  * http://tools.ietf.org/html/rfc2425
+  * http://tools.ietf.org/html/rfc4791
+  * http://tools.ietf.org/html/rfc2426
 
 * ActiveSync Contact and Calendar Protocol Specification
-        - http://msdn.microsoft.com/en-us/library/cc425499%28EXCHG.80%29.aspx
-	- http://msdn.microsoft.com/en-us/library/dd299451(v=exchg.80).aspx
-	- http://msdn.microsoft.com/en-us/library/dd299440(v=exchg.80).aspx
-	- http://msdn.microsoft.com/en-us/library/cc463911(v=exchg.80).aspx
+  * http://msdn.microsoft.com/en-us/library/cc425499%28EXCHG.80%29.aspx
+  * http://msdn.microsoft.com/en-us/library/dd299451(v=exchg.80).aspx
+  * http://msdn.microsoft.com/en-us/library/dd299440(v=exchg.80).aspx
+  * http://msdn.microsoft.com/en-us/library/cc463911(v=exchg.80).aspx
 
 
 Library used
 ------------
+
 * [CardDAV-Client](https://github.com/graviox/CardDAV-PHP/)
 	* Thanks to Christian Putzke for updating is library
 * [s-push](https://github.com/dekkers/s-push)
@@ -81,8 +83,8 @@ File 'backend/combined/config.inc.php' is the original file from z-push svn repo
 ### Edit config.php
  * Set TimeZone
  * Configure the BackendIMAP settings section
- * Configure the BackendCARDDAV settings section
- * Configure the BackendCALDAV settings section
+ * Configure the BackendCARDDAV setting section
+ * Configure the BackendCALDAV setting section
 
 ### Edit backend/searchldap/config.php
  * To get GAL search support from your LDAP tree.
