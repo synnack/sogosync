@@ -4,7 +4,7 @@ SOGoSync
 Description
 -----------
 
-sogosync is Z-Push - Open Source ActiveSync (svn upstream) with caldav and cardav backend.
+sogosync is Z-Push - Open Source ActiveSync - from svn upstream with caldav and cardav backend.
 
 Features
 --------
@@ -30,7 +30,7 @@ Thanks
 SOGoSync is possible thanks to the following projects:
 
 * [Open Groupware](http://www.sogo.nu/)
-* [ActiveSync implementation](http://z-push.sourceforge.net/soswp)
+* [Open Source ActiveSync implementation](http://z-push.sourceforge.net/soswp)
 * [CardDAV-PHP](https://github.com/graviox/CardDAV-PHP)
 
 
@@ -49,15 +49,17 @@ See also
   * http://msdn.microsoft.com/en-us/library/dd299440(v=exchg.80).aspx
   * http://msdn.microsoft.com/en-us/library/cc463911(v=exchg.80).aspx
 
+* [s-push](https://github.com/dekkers/s-push)
+	* Thanks to Jeroen Dekkers for the original caldav support
+
 
 Library used
 ------------
 
 * [CardDAV-Client](https://github.com/graviox/CardDAV-PHP/)
 	* Thanks to Christian Putzke for updating is library
-* [s-push](https://github.com/dekkers/s-push)
-	* Thanks to Jeroen Dekkers for the original caldav support
 * [vCard-parser](https://github.com/nuovo/vCard-parser/)
+* [CalDAV-Client](http://wiki.davical.org/w/Developer_Setup)
 
 Installation
 ------------
@@ -75,7 +77,7 @@ File 'config.php' is the original file from z-push svn repository:
     $ cp config.php config.php.org
     $ cp config.inc.php config.php
 
-File 'backend/combined/config.inc.php' is the original file from z-push svn repository:
+File 'backend/combined/config.php' is the original file from z-push svn repository:
 
     $ cp backend/combined/config.php backend/combined/config.php.org
     $ cp backend/combined/config.inc.php backend/combined/config.php
@@ -94,13 +96,13 @@ The configuration is pre-configure to work with the [SOGo Online Demo](http://ww
 
 Test
 ----
-Using a browser, you should get:
+Using a browser, login to https://sogo.mydomain.com/Microsoft-Server-ActiveSync
 
-Login to https://sogo.mydomain.com/Microsoft-Server-ActiveSync
-
-You need to see a wegpage "Z-Push - Open Source ActiveSync" with "GET not supported"
+You need to see a webpage "Z-Push - Open Source ActiveSync" with "GET not supported"
 
 If so, congratulations!
+
+You can now configure your smartphone.
 
 
 Update
@@ -119,5 +121,7 @@ Contributing
 3. Commit your changes (`git commit -am "Added Snarkdown"`)
 4. Push to the branch (`git push origin my_markup`)
 5. Create an [Issue][1] with a link to your branch
+6. Or Send me a [Pull Request][2].
 
 [1]: https://github.com/xbgmsharp/sogosync/issues
+[2]: https://github.com/xbgmsharp/sogosync/pull/new/master
