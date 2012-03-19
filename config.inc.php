@@ -56,7 +56,8 @@
                         ini_get('include_path') . PATH_SEPARATOR .
                         "/usr/share/php/" . PATH_SEPARATOR .
                         "/usr/share/php5/" . PATH_SEPARATOR .
-                        "/usr/share/pear/");
+                        "/usr/share/pear/",
+                        "/usr/share/awl/inc");
 
     define('STATE_DIR', BASE_PATH.'/state');
 
