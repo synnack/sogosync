@@ -52,6 +52,7 @@
     // Define the include paths
     ini_set('include_path',
                         BASE_PATH. "include/" . PATH_SEPARATOR .
+                        BASE_PATH. "include/CardDAV-PHP/" . PATH_SEPARATOR .
                         BASE_PATH. PATH_SEPARATOR .
                         ini_get('include_path') . PATH_SEPARATOR .
                         "/usr/share/php/" . PATH_SEPARATOR .
