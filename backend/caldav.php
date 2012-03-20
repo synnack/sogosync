@@ -45,6 +45,11 @@ require_once('caldav-client-v2.php');
 require_once('iCalendar.php');
 
 class BackendCaldav extends BackendDiff {
+    // SOGoSync version
+    const SOGOSYNC_VERSION = '0.1.0';
+    // SOGoSync vcard Prodid
+    const SOGOSYNC_PRODID = 'SOGoSync';
+
     /* Called to logon a user. These are the three authentication strings that you must
      * specify in ActiveSync on the PDA. Normally you would do some kind of password
      * check here. Alternatively, you could ignore the password here and have Apache
@@ -52,7 +57,11 @@ class BackendCaldav extends BackendDiff {
      */
     function Logon($username, $domain, $password) {
 	debugLog("CaldavBackend: " . __FUNCTION__ . "(" . implode(", ", func_get_args()) . ")");
-	$this->_caldav = new CalDAVClient("http://sogo-demo.inverse.ca/SOGo/dav/", $username, $password);
+	debugLog("CarddavBackend: " . __FUNCTION__ . " - Version  [" . self::SOGOSYNC_VERSION . "]");
+
+        $url = str_replace('%u', $username, CALDAV_URL);
+        debugLog("CaldavBackend: " . __FUNCTION__ . " - [" . $url . "]");
+        $this->_caldav = new CalDAVClient($url, $username, $password);
 	$this->_events = array();
 
 	$options = $this->_caldav->DoOptionsRequest();
@@ -346,7 +355,7 @@ class BackendCaldav extends BackendDiff {
 
 	    case "RRULE":
 		$recurrence = new SyncRecurrence();
-		$rulepartlist = explode(';', $propety->Value());
+		$rulepartlist = explode(';', $property->Value());
 		foreach ($rulepartlist as $rulepart) {
 		    $rulearray = explode('=', $rulepart);
 		    switch ($rulearray[0]) {
