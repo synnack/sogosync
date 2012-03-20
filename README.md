@@ -21,7 +21,7 @@ Requirement
 	* [Comparison of Exchange ActiveSync clients](http://en.wikipedia.org/wiki/Comparison_of_Exchange_ActiveSync_clients)
 * PHP5 with the following library for a Debian system
 
-        $ apt-get install php5-curl php5-ldap php5-imap php5-mail libawl-php
+        $ apt-get install php5-curl php5-ldap php5-imap php-mail libawl-php
 
 
 Thanks
