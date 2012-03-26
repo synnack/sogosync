@@ -9,8 +9,8 @@ sogosync is Z-Push - Open Source ActiveSync - from svn upstream with caldav and 
 Features
 --------
 
-* Add ActiveSync caldav support with multiple calendar using a caldav server
-* Add ActiveSync carddav support with multiple addressbook using a carddav server
+* CalDAV support with multiple calendar using a CalDAV server
+* CardDAV support with multiple addressbook using a CardDAV server
 
 
 Requirement
@@ -63,9 +63,13 @@ Library used
 
 Installation
 ------------
+
+Clone from github:
+
     $ cd /var/www
     $ git clone https://github.com/xbgmsharp/sogosync.git
     $ cd sogosync
+
 
 Read z-push install instruction into INSTALL file or [Configure Z-Push (Remote ActiveSync for Mobile Devices)](http://doc.zarafa.com/7.0/Administrator_Manual/en-US/html/_zpush.html)
 
