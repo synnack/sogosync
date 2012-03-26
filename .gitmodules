@@ -1,6 +1,0 @@
-[submodule "include/CardDAV-PHP"]
-	path = include/CardDAV-PHP
-	url = https://github.com/xbgmsharp/CardDAV-PHP.git
-[submodule "include/vCard-parser"]
-	path = include/vCard-parser
-	url = https://github.com/xbgmsharp/vCard-parser.git
