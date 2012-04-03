@@ -46,7 +46,7 @@ require_once('iCalendar.php');
 
 class BackendCaldav extends BackendDiff {
     // SOGoSync version
-    const SOGOSYNC_VERSION = '0.1.0';
+    const SOGOSYNC_VERSION = '0.2.0';
     // SOGoSync vcard Prodid
     const SOGOSYNC_PRODID = 'SOGoSync';
 
@@ -62,6 +62,7 @@ class BackendCaldav extends BackendDiff {
         $url = str_replace('%u', $username, CALDAV_URL);
         debugLog("CaldavBackend: " . __FUNCTION__ . " - [" . $url . "]");
         $this->_caldav = new CalDAVClient($url, $username, $password);
+	$this->_caldav->SetUserAgent("Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1");
 	$this->_events = array();
 
 	$options = $this->_caldav->DoOptionsRequest();
