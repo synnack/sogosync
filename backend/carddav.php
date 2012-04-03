@@ -44,7 +44,7 @@ require_once('carddav.php');
 
 class BackendCarddav extends BackendDiff {
     // SOGoSync version
-    const SOGOSYNC_VERSION = '0.1.0';
+    const SOGOSYNC_VERSION = '0.2.0';
     // SOGoSync vcard Prodid
     const SOGOSYNC_PRODID = 'SOGoSync';
 
@@ -174,12 +174,12 @@ class BackendCarddav extends BackendDiff {
         $abooklist = $this->_carddav->get(false, false);
 	if (empty($abooklist)) { return $folderlist; }
         $xmlabooklist = new SimpleXMLElement($abooklist);
-        foreach ($xmlabooklist->element as $response) {
-		if(strstr((string)$response->id, "public")) { continue; } // if public skip as it is handle by GAL
+        foreach ($xmlabooklist->addressbook_element as $response) {
+		if(strstr(basename((string)$response->url), "public")) { continue; } // if public skip as it is handle by GAL
 	        $folder = array();
-	        $folder["id"] = (string)$response->id;
+	        $folder["id"] = basename((string)$response->url);
 	        $folder["parent"] = "0";
-	        $folder["mod"] = (string)$response->displayname;
+	        $folder["mod"] = (string)$response->display_name;
 	        $folderlist[] = $folder;
 		debugLog("CarddavBackend: " . __FUNCTION__ . " - in Abook [". $folder["id"] ."] Abook Name [". $folder["mod"]. "]");
 	}
@@ -200,12 +200,12 @@ class BackendCarddav extends BackendDiff {
         $abooklist = $this->_carddav->get(false, false);
 	if (empty($abooklist)) { return false; }
         $xmlabooklist = new SimpleXMLElement($abooklist);
-        foreach ($xmlabooklist->element as $response) {
-		if(strstr((string)$response->id, "public")) { continue; } // if public skip as it is handle by GAL
-		if((string)$response->id === $id) {
+        foreach ($xmlabooklist->addressbook_element as $response) {
+		if(strstr(basename((string)$response->url), "public")) { continue; } // if public skip as it is handle by GAL
+		if(basename((string)$response->url) === $id) {
 			$folder = new SyncFolder();
-			$folder->serverid = (string)$response->id;
-			$folder->displayname = (string)$response->displayname;
+			$folder->serverid = basename((string)$response->url);
+			$folder->displayname = (string)$response->display_name;
 			$folder->parentid = "0";
 			$folder->type = SYNC_FOLDER_TYPE_USER_CONTACT;
 			debugLog("CarddavBackend: " . __FUNCTION__ . " - Abook Id  [". $folder->serverid ."] Abook Name [". $folder->displayname ."]");
@@ -235,13 +235,13 @@ class BackendCarddav extends BackendDiff {
         $abooklist = $this->_carddav->get(false, false);
 	if (empty($abooklist)) { return false; }
         $xmlabooklist = new SimpleXMLElement($abooklist);
-        foreach ($xmlabooklist->element as $response) {
-		if(strstr((string)$response->id, "public")) { continue; } // if public skip as it is handle by GAL
-		if((string)$response->id === $id) {
+        foreach ($xmlabooklist->addressbook_element as $response) {
+		if(strstr(basename((string)$response->url), "public")) { continue; } // if public skip as it is handle by GAL
+		if(basename((string)$response->url) === $id) {
 			$folder = array();
-			$folder["id"] = (string)$response->id;
+			$folder["id"] = basename((string)$response->url);
 			$folder["parent"] = "0";
-			$folder["mod"] = (string)$response->displayname;
+			$folder["mod"] = (string)$response->display_name;
 			debugLog("CarddavBackend: " . __FUNCTION__ . " - Abook Id  [". $folder["id"] ."] Abook Name [". $folder["mod"] ."]");
 			return $folder;
 		}
