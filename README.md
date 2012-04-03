@@ -24,6 +24,12 @@ Requirement
         $ apt-get install php5-curl php5-ldap php5-imap php-mail libawl-php
 
 
+* PHP5 with the following library for a Redhat system
+
+        $ yum install php-curl php-common php-ldap php-imap php-imap libawl-php
+
+
+
 Thanks
 ------
 
