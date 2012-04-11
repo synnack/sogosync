@@ -54,7 +54,7 @@ class BackendCarddav extends BackendDiff {
      * do authentication via mod_auth_*
      */
     function Logon($username, $domain, $password) {
-	debugLog("CarddavBackend: " . __FUNCTION__ . "(" . implode(", ", func_get_args()) . ")");
+	debugLog("CarddavBackend: " . __FUNCTION__ . "(" . $username .", " . $domain . ",***)");
 	debugLog("CarddavBackend: " . __FUNCTION__ . " - Version  [" . self::SOGOSYNC_VERSION . "]");
 
         // Confirm PHP-CURL Installed; If Not, Exit
