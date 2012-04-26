@@ -154,6 +154,9 @@
     // ******************************
     // %u is replaced by the username
     // Using HTTPS URL is recommended
+    define('CALDAV_SERVER', 'http://sogo-demo.inverse.ca');
+    define('CALDAV_PATH', '/SOGo/dav/%u/');
+    define('CALDAV_PERSONAL', 'personal');
     define('CALDAV_URL', 'http://sogo-demo.inverse.ca/SOGo/dav/%u/');
 
     // ******************************
