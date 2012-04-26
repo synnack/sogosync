@@ -43,7 +43,7 @@ class CalDAVClient {
   *
   * @var string
   */
-  protected $base_url, $user, $pass, $entry, $protocol, $server, $port;
+  protected $base_url, $user, $pass, $entry, $protocol, $server, $port, $http_auth;
 
   /**
   * The principal-URL we're using
@@ -77,10 +77,14 @@ class CalDAVClient {
   protected $requestMethod = "GET";
   protected $httpRequest = "";  // for debugging http headers sent
   protected $xmlRequest = "";   // for debugging xml sent
-  protected $httpResponse = ""; // http headers received
   protected $xmlResponse = "";  // xml received
+  protected $httpResponseCode = 0; // http response code
+  protected $httpResponseHeaders = "";
+  protected $httpResponseBody = "";  
 
   protected $parser; // our XML parser object
+  
+  private $debug = false; // Whether we are debugging
 
   /**
   * Constructor, initialises the class
@@ -93,6 +97,9 @@ class CalDAVClient {
     $this->user = $user;
     $this->pass = $pass;
     $this->headers = array();
+    $this->http_auth = array(
+        'method' => 'basic'
+    );
 
     if ( preg_match( '#^(https?)://([a-z0-9.-]+)(:([0-9]+))?(/.*)$#', $base_url, $matches ) ) {
       $this->server = $matches[2];
@@ -114,6 +121,23 @@ class CalDAVClient {
     }
   }
 
+  
+  /**
+   * Call this to enable / disable debugging.  It will return the prior value of the debugging flag.
+   * @param boolean $new_value The new value for debugging.
+   * @return boolean The previous value, in case you want to restore it later.
+   */
+  function SetDebug( $new_value ) {
+    $old_value = $this->debug;
+    if ( $new_value )
+      $this->debug = true;
+    else
+      $this->debug = false;
+    return $old_value;
+  }
+
+  
+  
   /**
   * Adds an If-Match or If-None-Match header
   *
@@ -121,7 +145,7 @@ class CalDAVClient {
   * @param string $etag The etag to match / not match against.
   */
   function SetMatch( $match, $etag = '*' ) {
-    $this->headers['match'] = sprintf( "%s-Match: %s", ($match ? "If" : "If-None"), $etag);
+    $this->headers['match'] = sprintf( "%s-Match: \"%s\"", ($match ? "If" : "If-None"), trim($etag,'"'));
   }
 
   /**
@@ -168,11 +192,7 @@ class CalDAVClient {
    */
   function ParseResponse( $response ) {
     $pos = strpos($response, '<?xml');
-    if ($pos === false) {
-      $this->httpResponse = trim($response);
-    }
-    else {
-      $this->httpResponse = trim(substr($response, 0, $pos));
+    if ($pos !== false) {
       $this->xmlResponse = trim(substr($response, $pos));
       $this->xmlResponse = preg_replace('{>[^>]*$}s', '>',$this->xmlResponse );
       $parser = xml_parser_create_ns('UTF-8');
@@ -180,11 +200,11 @@ class CalDAVClient {
       xml_parser_set_option ( $parser, XML_OPTION_CASE_FOLDING, 0 );
 
       if ( xml_parse_into_struct( $parser, $this->xmlResponse, $this->xmlnodes, $this->xmltags ) === 0 ) {
-        //printf( "XML parsing error: %s - %s\n", xml_get_error_code($parser), xml_error_string(xml_get_error_code($parser)) );
+        if ( $this->debug ) printf( "XML parsing error: %s - %s\n", xml_get_error_code($parser), xml_error_string(xml_get_error_code($parser)) );
 //        debug_print_backtrace();
 //        echo "\nNodes array............................................................\n"; print_r( $this->xmlnodes );
 //        echo "\nTags array............................................................\n";  print_r( $this->xmltags );
-        //printf( "\nXML Reponse:\n%s\n", $this->xmlResponse );
+        if ( $this->debug ) printf( "\nXML Reponse:\n%s\n", $this->xmlResponse );
       }
 
       xml_parser_free($parser);
@@ -239,7 +259,7 @@ class CalDAVClient {
   *
   * @return string The content of the response from the server
   */
-  function DoRequest( $url = null ) {
+  function DoRequest( $url = null, $switch_auth = false ) {
     if(!defined("_FSOCK_TIMEOUT")){ define("_FSOCK_TIMEOUT", 10); }
     $headers = array();
 
@@ -256,7 +276,16 @@ class CalDAVClient {
       $url = str_replace(rawurlencode(','),',',$url);
     }
     $headers[] = $this->requestMethod." ". $url . " HTTP/1.1";
-    $headers[] = "Authorization: Basic ".base64_encode($this->user .":". $this->pass );
+    if( 'basic' != $this->http_auth['method'] && !isset( $this->http_auth['stale'] )) {
+	// then it's digest...
+	$digest_A1 = md5( $this->user .':' . $this->http_auth['realm'] . ':' . $this->pass );
+	$digest_A2 = md5( $this->requestMethod.':'.$url );
+	$digest = 'Authorization: Digest username="'.$this->user.'", realm="'.$this->http_auth['realm'].'", nonce="'.$this->http_auth['nonce'].'", uri="'.$url.'", algorithm=MD5, response="'.md5($digest_A1.':'.$this->http_auth['nonce'].':'.$digest_A2).'"';
+	// todo: loop through challenges
+	$headers[] = $digest;
+    } else {
+	$headers[] = "Authorization: Basic ".base64_encode($this->user .":". $this->pass );
+    }
     $headers[] = "Host: ".$this->server .":".$this->port;
 
     if ( !isset($this->headers['content-type']) ) $this->headers['content-type'] = "Content-type: text/plain";
@@ -269,7 +298,6 @@ class CalDAVClient {
     $this->httpRequest = join("\r\n",$headers);
     $this->xmlRequest = $this->body;
 
-    $this->httpResponse = '';
     $this->xmlResponse = '';
 
     $fip = fsockopen( $this->protocol . '://' . $this->server, $this->port, $errno, $errstr, _FSOCK_TIMEOUT); //error handling?
@@ -280,7 +308,45 @@ class CalDAVClient {
     fclose($fip);
 
     list( $this->httpResponseHeaders, $this->httpResponseBody ) = preg_split( '{\r?\n\r?\n}s', $response, 2 );
+    $header_lines = preg_split( '{\r?\n}', $this->httpResponseHeaders );
+    if( count( preg_grep( '{^HTTP/1.1 3\d\d.*}i', $header_lines ) ) > 0 && count( $matches = preg_grep( '{^Location: (.*)}i', $header_lines ) ) > 0 ) {
+        // todo: cache move?
+        return $this->DoRequest( substr( end( $matches ), 10 ), $switch_auth );
+    }
+
+    $can_switch_auth = false;
+    if( true != $switch_auth && count( preg_grep( '{^HTTP/1.1 401 Unauthorized.*}i', $header_lines ) ) > 0 && 'basic' == $this->http_auth['method'] ) {
+        $can_switch_auth = true;
+    }
+     if( count( $digest = preg_grep( '{^WWW-Authenticate: digest.+}', $header_lines ) ) > 0 ) {
+        $digest_string = end( $digest );
+        $this->http_auth['method'] = 'digest';
+        $this->http_auth['challenge'] = array();
+
+        foreach( array( 'realm', 'domain', 'nonce', 'stale' ) as $c ) {
+            if( preg_match( '{.+?'.$c.'="([^"]+)".*?}', $digest_string, $matches ) ) {
+                $this->http_auth[$c] = $matches[1];
+            }
+        }
+        foreach( array( 'opaque', 'algorithm', 'qop-options', 'auth-param' ) as $c ) {
+            if( preg_match( '{.+?'.$c.'="([^"]+)".*?}', $digest_string, $matches ) ) {
+                $this->http_auth['challenge'][$c] = $matches[1];
+            }
+        }
+        if( isset( $this->http_auth['challenge']['qop-options'] ) ) {
+            if( preg_match( '{.+?qop-value="([^"]+)".*?}', $digest_string, $matches ) ) {
+                $this->http_auth['challenge'][$c] = $matches[1];
+            }
+        }
+        if( $can_switch_auth ) {
+		return $this->DoRequest( $url, true );
+        }
+    }
     if ( preg_match( '{Transfer-Encoding: chunked}i', $this->httpResponseHeaders ) ) $this->Unchunk();
+    if ( preg_match('/HTTP\/\d\.\d (\d{3})/', $this->httpResponseHeaders, $status) )
+      $this->httpResponseCode = intval($status[1]);
+    else
+      $this->httpResponseCode = 0;
 
     $this->headers = array();  // reset the headers array for our next request
     $this->ParseResponse($this->httpResponseBody);
@@ -401,13 +467,13 @@ class CalDAVClient {
     $etag = null;
     if ( preg_match( '{^ETag:\s+"([^"]*)"\s*$}im', $this->httpResponseHeaders, $matches ) ) $etag = $matches[1];
     if ( !isset($etag) || $etag == '' ) {
-      //printf( "No etag in:\n%s\n", $this->httpResponseHeaders );
+      if ( $this->debug ) printf( "No etag in:\n%s\n", $this->httpResponseHeaders );
       $save_request = $this->httpRequest;
       $save_response_headers = $this->httpResponseHeaders;
       $this->DoHEADRequest( $url );
       if ( preg_match( '{^Etag:\s+"([^"]*)"\s*$}im', $this->httpResponseHeaders, $matches ) ) $etag = $matches[1];
       if ( !isset($etag) || $etag == '' ) {
-        //printf( "Still No etag in:\n%s\n", $this->httpResponseHeaders );
+        if ( $this->debug ) printf( "Still No etag in:\n%s\n", $this->httpResponseHeaders );
       }
       $this->httpRequest = $save_request;
       $this->httpResponseHeaders = $save_response_headers;
@@ -432,7 +498,7 @@ class CalDAVClient {
       $this->SetMatch( true, $etag );
     }
     $this->DoRequest($url);
-    return $this->resultcode;
+    return $this->httpResponseCode;
   }
 
 
@@ -535,7 +601,7 @@ class CalDAVClient {
       }
     }
     else {
-      //printf( "xmltags[$tagname] or xmltags[$tagname][$i] is not set\n");
+      if ( $this->debug ) printf( "xmltags[$tagname] or xmltags[$tagname][$i] is not set\n");
     }
     return null;
   }
@@ -600,7 +666,7 @@ class CalDAVClient {
   *
   * @param string $url The URL to find the principal-URL from
   */
-  function FindPrincipal( ) {
+  function FindPrincipal( $url=null ) {
     $xml = $this->DoPROPFINDRequest( $this->base_url, array('resourcetype', 'current-user-principal', 'owner', 'principal-URL',
                                   'urn:ietf:params:xml:ns:caldav:calendar-home-set'), 1);
 
@@ -675,7 +741,7 @@ class CalDAVClient {
         $calendar = new CalendarInfo($href);
         $ok_props = $this->GetOKProps($hnode);
         foreach( $ok_props AS $v ) {
-//          printf("Looking at: %s[%s] %s\n", $href, $v['tag'], $v['value'] );
+//          printf("Looking at: %s[%s]\n", $href, $v['tag'] );
           switch( $v['tag'] ) {
             case 'http://calendarserver.org/ns/:getctag':
               $calendar->getctag = $v['value'];
@@ -685,7 +751,7 @@ class CalDAVClient {
               break;
           }
         }
-        $calendar->id = rtrim(str_replace($this->calendar_home_set[0], "", $calendar->url), "/");
+	$calendar->id = rtrim(str_replace($this->calendar_home_set[0], "", $calendar->url), "/");
         $calendars[] = $calendar;
       }
     }
@@ -860,7 +926,7 @@ EOXML;
   *
   * @return array An array of the relative URLs, etags, and events, returned from DoCalendarQuery() @see DoCalendarQuery()
   */
-  function GetEvents( $start = null, $finish = null, $relative_url = null) {
+  function GetEvents( $start = null, $finish = null, $relative_url = null ) {
     $filter = "";
     if ( isset($start) && isset($finish) )
         $range = "<C:time-range start=\"$start\" end=\"$finish\"/>";
@@ -932,16 +998,17 @@ EOFILTER;
   *
   * @param uid
   * @param string    $relative_url The URL relative to the base_url specified when the calendar was opened.  Default ''.
+  * @param string    $component_type The component type inside the VCALENDAR.  Default 'VEVENT'.
   *
   * @return array An array of the relative URL, etag, and calendar data returned from DoCalendarQuery() @see DoCalendarQuery()
   */
-  function GetEntryByUid( $uid, $relative_url = null ) {
+  function GetEntryByUid( $uid, $relative_url = null, $component_type = 'VEVENT' ) {
     $filter = "";
     if ( $uid ) {
       $filter = <<<EOFILTER
   <C:filter>
     <C:comp-filter name="VCALENDAR">
-          <C:comp-filter name="VEVENT">
+          <C:comp-filter name="$component_type">
                 <C:prop-filter name="UID">
                         <C:text-match icollation="i;octet">$uid</C:text-match>
                 </C:prop-filter>
