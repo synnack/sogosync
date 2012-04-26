@@ -8,6 +8,7 @@
 * @author Andrew McMillan <andrew@mcmillan.net.nz>
 * @copyright Andrew McMillan
 * @license   http://www.gnu.org/licenses/lgpl-3.0.txt  GNU LGPL version 3 or later
+* Update xbgmsharp <xbgmsharp@gmail.com>
 */
 
 require_once('XMLDocument.php');
