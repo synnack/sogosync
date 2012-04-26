@@ -37,10 +37,10 @@
 ************************************************/
 
 require_once('diffbackend.php');
-
 // This is a carddav client library from https://github.com/graviox/CardDAV-PHP/
-// + some bugfix
 require_once('carddav.php');
+// This is a carddav parser library from https://github.com/nuovo/vCard-parser/
+require_once('vCard.php');
 
 class BackendCarddav extends BackendDiff {
     // SOGoSync version
@@ -69,10 +69,12 @@ class BackendCarddav extends BackendDiff {
 	$this->_carddav->set_auth($username, $password);
 
 	if ($this->_carddav->check_connection()) {
+	    debugLog("CarddavBackend: " . __FUNCTION__ . " [Logon(): User '". $username ."' is authenticated on CarDAV]");
 	    $this->_username = $username;
 	    $this->url = $url;
 	    return true;
 	} else {
+	    debugLog("CarddavBackend: " . __FUNCTION__ . " [Logon(): User '". $username ."' is not authenticated on CarDAV]");
 	    return false;
 	}
     }
@@ -151,8 +153,8 @@ class BackendCarddav extends BackendDiff {
 	$xmlvcardlist = new SimpleXMLElement($vcardlist);
 	foreach ($xmlvcardlist->element as $vcard) {
 		$message = array();
-		$message["mod"] = (string)$vcard->etag;
-		$message["id"] = (string)$vcard->id;
+		$message["mod"] = $vcard->etag;
+		$message["id"] = $vcard->id;
 		$message["flags"] = 0;
 		$messagelist[] = $message;
 		debugLog("CarddavBackend: " . __FUNCTION__ ." - in Abook [". $folderid ."] vCard Id  [". $message["id"] ."] vCard etag [". $message["mod"] ."]");
@@ -177,9 +179,9 @@ class BackendCarddav extends BackendDiff {
         foreach ($xmlabooklist->addressbook_element as $response) {
 		if(strstr(basename((string)$response->url), "public")) { continue; } // if public skip as it is handle by GAL
 	        $folder = array();
-	        $folder["id"] = basename((string)$response->url);
+	        $folder["id"] = basename($response->url);
 	        $folder["parent"] = "0";
-	        $folder["mod"] = (string)$response->display_name;
+	        $folder["mod"] = $response->display_name;
 	        $folderlist[] = $folder;
 		debugLog("CarddavBackend: " . __FUNCTION__ . " - in Abook [". $folder["id"] ."] Abook Name [". $folder["mod"]. "]");
 	}
@@ -204,8 +206,8 @@ class BackendCarddav extends BackendDiff {
 		if(strstr(basename((string)$response->url), "public")) { continue; } // if public skip as it is handle by GAL
 		if(basename((string)$response->url) === $id) {
 			$folder = new SyncFolder();
-			$folder->serverid = basename((string)$response->url);
-			$folder->displayname = (string)$response->display_name;
+			$folder->serverid = basename($response->url);
+			$folder->displayname = $response->display_name;
 			$folder->parentid = "0";
 			$folder->type = SYNC_FOLDER_TYPE_USER_CONTACT;
 			debugLog("CarddavBackend: " . __FUNCTION__ . " - Abook Id  [". $folder->serverid ."] Abook Name [". $folder->displayname ."]");
@@ -239,9 +241,9 @@ class BackendCarddav extends BackendDiff {
 		if(strstr(basename((string)$response->url), "public")) { continue; } // if public skip as it is handle by GAL
 		if(basename((string)$response->url) === $id) {
 			$folder = array();
-			$folder["id"] = basename((string)$response->url);
+			$folder["id"] = basename($response->url);
 			$folder["parent"] = "0";
-			$folder["mod"] = (string)$response->display_name;
+			$folder["mod"] = $response->display_name;
 			debugLog("CarddavBackend: " . __FUNCTION__ . " - Abook Id  [". $folder["id"] ."] Abook Name [". $folder["mod"] ."]");
 			return $folder;
 		}
@@ -416,8 +418,11 @@ class BackendCarddav extends BackendDiff {
      * be able to delete messages on the PDA, but as soon as you sync, you'll get the item back
      */
     function DeleteMessage($folderid, $id) {
-	debugLog("CarddavBackend: " . __FUNCTION__ . "(" . implode(", ", func_get_args()) . ")");
-	return false;
+        debugLog("CarddavBackend: " . __FUNCTION__ . "(" . implode(", ", func_get_args()) . ")");
+        $url = $this->url . $folderid . "/";
+        $this->_carddav->set_url($url);
+        debugLog("CarddavBackend: " . __FUNCTION__ . " - URL  [" . $url . "]");
+        return $this->_carddav->delete($id);
     }
 
     /* This should change the 'read' flag of a message on disk. The $flags
@@ -441,7 +446,81 @@ class BackendCarddav extends BackendDiff {
      */
     function ChangeMessage($folderid, $id, $message) {
 	debugLog("CarddavBackend: " . __FUNCTION__ . "(" . $folderid . "," . $id . ")");
-	return false;
+
+        $mapping = array(
+                'fileas' => 'FN',
+                'lastname;firstname' => 'N',
+                'nickname' => 'NICKNAME',
+                'homephonenumber' => 'TEL;TYPE=home',
+                'mobilephonenumber' => 'TEL;TYPE=cell',
+                'businessphonenumber' => 'TEL;TYPE=work',
+                'businessfaxnumber' => 'TEL;TYPE=fax',
+                'pagernumber' => 'TEL;TYPE=pager',
+                'email1address' => 'EMAIL;TYPE=work',
+                'email2address' => 'EMAIL;TYPE=home',
+                //'webpage' => 'URL;TYPE=home', does not exist in ActiveSync
+                'webpage' => 'URL;TYPE=work',
+                //'birthday' => 'BDAY', // handle separetly
+                //'jobtitle' => 'ROLE', // iOS take it as 'TITLE' Does not make sense??
+                'jobtitle' => 'TITLE',
+                'body' => 'NOTE',
+                'companyname;department' => 'ORG',
+                ';;businessstreet;businesscity;businessstate;businesspostalcode;businesscountry' => 'ADR;TYPE=work',
+                ';;homestreet;homecity;homestate;homepostalcode;homecountry' => 'ADR;TYPE=home',
+                //'picture' => 'PHOTO;BASE64', // handle separetly
+                //'categories' => 'CATEGORIES', // handle separetly, but i am unable to create categories form iOS
+                'imaddress' => 'X-AIM',
+        );
+
+        $data = "BEGIN:VCARD\n";
+        if ($id) {
+                $data .= "UID:". $id .".vcf\n";
+        } else {
+                $UUID = $this->generate_uuid();
+                $data .= "UID:". $UUID .".vcf\n";
+        }
+        $data .= "VERSION:3.0\nPRODID:-//". self::SOGOSYNC_PRODID ." ". self::SOGOSYNC_VERSION ."//NONSGML ". self::SOGOSYNC_PRODID . " AddressBook//EN\n";
+
+        foreach($mapping as $ms => $vcard){
+                $val = '';
+                $value = explode(';', $ms);
+                foreach($value as $i){
+                        if(!empty($message->$i))
+                                $val .= $message->$i;
+                        $val.=';';
+                }
+                $val = substr($val,0,-1);
+                if(empty($val)) { continue; }
+                $data .= $vcard.":".$val."\n";
+        }
+        if(!empty($message->categories))
+                $data .= "CATEGORIES:".implode(',', $message->categories)."\n";
+        if(!empty($message->picture))
+                // FIXME first line 50 char next one 74
+                // Apparently iOS send the file on BASE64
+                $data .= "PHOTO;ENCODING=BASE64;TYPE=JPEG:".substr(chunk_split($message->picture, 50, "\n "), 0, -1);
+        if(isset($message->birthday))
+                $data .= "BDAY:".date('Y-m-d', $message->birthday)."\n";
+        $data .= "END:VCARD";
+
+        debugLog("CarddavBackend: vCard[". $data ."]");
+
+        ob_start();
+        var_dump($message);
+        $result = ob_get_clean();
+        file_put_contents('/tmp/2.vcf', $result);
+
+        //debugLog("CarddavBackend: vCard[". print_r($message,true) ."]");
+
+        $url = $this->url . $folderid . "/";
+        $this->_carddav->set_url($url);
+        debugLog("CarddavBackend: " . __FUNCTION__ . " - URL  [" . $url . "]");
+        if ($id)
+                $this->_carddav->update($data, $id);
+        else
+                $this->_carddav->add($data, $UUID);
+
+        return $this->StatMessage($folderid, $id);
     }
 
     /* This function is called when the user moves an item on the PDA. You should do whatever is needed
@@ -467,6 +546,26 @@ class BackendCarddav extends BackendDiff {
 	debugLog("CarddavBackend: " . __FUNCTION__ . "(" . implode(", ", func_get_args()) . ")");
 	return false;
     }
+
+    private function MydebugLog($fuc, $str)
+    {
+                debugLog("CardavBackend: " . $fuc . " [". $str ."]");
+    }
+
+   private function generate_uuid() {
+        // Which format?
+        $md5 = md5(uniqid('', true));
+        // 33CABD2C-5386-D460-2577-A63C141405F4
+/*      return strtoupper(substr($md5, 0, 8 ) . '-' . substr($md5, 8, 4) . '-' .
+                substr($md5, 12, 4) . '-' .
+                substr($md5, 16, 4) . '-' .
+                substr($md5, 20, 12));
+*/
+        // 6F53-4F561080-F-7B4FC200
+        return strtoupper(substr($md5, 0, 4 ) . '-' . substr($md5, 4, 8) . '-' .
+                substr($md5, 12, 1) . '-' .
+                substr($md5, 14, 8));
+   }
 
 };
 
