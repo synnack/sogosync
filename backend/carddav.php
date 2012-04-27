@@ -47,6 +47,7 @@ class BackendCarddav extends BackendDiff {
     const SOGOSYNC_VERSION = '0.2.0';
     // SOGoSync vcard Prodid
     const SOGOSYNC_PRODID = 'SOGoSync';
+    private $_collection = array();
 
     /* Called to logon a user. These are the three authentication strings that you must
      * specify in ActiveSync on the PDA. Normally you would do some kind of password
@@ -143,6 +144,22 @@ class BackendCarddav extends BackendDiff {
 
         // Get list of vcard for one addressbook ($folderid)
         // for each vcard send the etag as MOD and the UID as ID
+/*	$messagelist = array();
+	if(strstr((string)$folderid, "public")) { return $messagelist; } // if public skip as it is handle by GAL
+	$url = $this->url . $folderid . "/";
+	debugLog("CarddavBackend: " . __FUNCTION__ . " - URL  [" . $url . "]");
+	$this->_carddav->set_url($url);
+	$vcardlist = $this->_carddav->get(true, false);
+	if (empty($vcardlist)) { return $messagelist; }
+	$xmlvcardlist = new SimpleXMLElement($vcardlist);
+	foreach ($xmlvcardlist->element as $vcard) {
+		$id = (string)$vcard->id->__toString();
+		$this->_collection[$id] = $vcard;
+		$messageslist[] = $this->StatMessage($folderid, $id);
+	}
+	return $messagelist;
+*/
+
 	$messagelist = array();
 	if(strstr((string)$folderid, "public")) { return $messagelist; } // if public skip as it is handle by GAL
 	$url = $this->url . $folderid . "/";
@@ -175,6 +192,12 @@ class BackendCarddav extends BackendDiff {
 	$this->_carddav->set_url($url);
         $abooklist = $this->_carddav->get(false, false);
 	if (empty($abooklist)) { return $folderlist; }
+	$xmlabooklist = new SimpleXMLElement($abooklist);
+	foreach ($xmlabooklist->addressbook_element as $response) {
+		if(strstr(basename((string)$response->url->__toString()), "public")) { continue; } // if public skip as it is handle by GAL
+		$folderlist[] = $this->StatFolder(basename((string)$response->url));
+	}
+/*	if (empty($abooklist)) { return $folderlist; }
         $xmlabooklist = new SimpleXMLElement($abooklist);
         foreach ($xmlabooklist->addressbook_element as $response) {
 		if(strstr(basename((string)$response->url), "public")) { continue; } // if public skip as it is handle by GAL
@@ -185,7 +208,7 @@ class BackendCarddav extends BackendDiff {
 	        $folderlist[] = $folder;
 		debugLog("CarddavBackend: " . __FUNCTION__ . " - in Abook [". $folder["id"] ."] Abook Name [". $folder["mod"]. "]");
 	}
-	return $folderlist;
+*/	return $folderlist;
     }
 
     /* GetFolder should return an actual SyncFolder object with all the properties set. Folders
@@ -200,16 +223,16 @@ class BackendCarddav extends BackendDiff {
 	debugLog("CarddavBackend: " . __FUNCTION__ . " - URL  [" . $url . "]");
         $this->_carddav->set_url($url);
         $abooklist = $this->_carddav->get(false, false);
-	if (empty($abooklist)) { return false; }
+	$folder = new SyncFolder();
+	if (empty($abooklist)) { return folder; }
         $xmlabooklist = new SimpleXMLElement($abooklist);
         foreach ($xmlabooklist->addressbook_element as $response) {
-		if(strstr(basename((string)$response->url), "public")) { continue; } // if public skip as it is handle by GAL
-		if(basename((string)$response->url) === $id) {
-			$folder = new SyncFolder();
-			$folder->serverid = basename((string)$response->url);
-			$folder->displayname = (string)$response->display_name;
+		if(strstr(basename((string)$response->url->__toString()), "public")) { continue; } // if public skip as it is handle by GAL
+		if(basename((string)$response->url->__toString()) === $id) {
+			$folder->serverid = basename((string)$response->url->__toString());
+			$folder->displayname = (string)$response->display_name->__toString();
 			$folder->parentid = "0";
-			if (defined(CARDDAV_PERSONAL) && strtolower($id) == CARDDAV_PERSONAL))
+			if (defined(CARDDAV_PERSONAL) && strtolower($id) == CARDDAV_PERSONAL)
 			{
 				$folder->type = SYNC_FOLDER_TYPE_USER_CONTACT;
 			}
@@ -221,7 +244,7 @@ class BackendCarddav extends BackendDiff {
 			return $folder;
 		}
 	}
-	return false;
+	return folder;
     }
 
     /* Return folder stats. This means you must return an associative array with the
@@ -236,9 +259,17 @@ class BackendCarddav extends BackendDiff {
     function StatFolder($id) {
 	debugLog("CarddavBackend: " . __FUNCTION__ . "(" . implode(", ", func_get_args()) . ")");
 
+	$val = $this->GetFolder($id);
+	$folder = array();
+	$folder["id"] = $id;
+	$folder["parent"] = $val->parentid;
+	$folder["mod"] = $val->displayname;
+	debugLog("CarddavBackend: " . __FUNCTION__ . " - Abook Id  [". $folder["id"] ."] Abook Name [". $folder["mod"] ."]");
+	return $folder;
+
         // for one Addressboook ($id)
         // send the id as id and the name as mod
-        $url = $this->url;
+/*        $url = $this->url;
 	debugLog("CarddavBackend: " . __FUNCTION__ . " - URL  [" . $url . "]");
         $this->_carddav->set_url($url);
         $abooklist = $this->_carddav->get(false, false);
@@ -256,7 +287,7 @@ class BackendCarddav extends BackendDiff {
 		}
 	}
 	return false;
-    }
+*/    }
 
     /* Creates or modifies a folder
      * "folderid" => id of the parent folder
@@ -296,17 +327,16 @@ class BackendCarddav extends BackendDiff {
         $this->_carddav->set_url($url);
 	debugLog("CarddavBackend: " . __FUNCTION__ . " - URL  [" . $url . "]");
         $data = $this->_carddav->get_xml_vcard($id);
-	if ($data === false) { return false; }
+	$message = array();
+	if ($data === false) { return $message; }
 	$xmlvcard = new SimpleXMLElement($data);
-	foreach ($xmlvcard->element as $vcard) {
-		$message = array();
-		$message["mod"] = (string)$vcard->etag;
-		$message["id"] = (string)$vcard->id;
+	foreach($xmlvcard->element as $vcard) {
+		$message["mod"] = (string)$vcard->etag->__toString();
+		$message["id"] = (string)$vcard->id->__toString();
 		$message["flags"] = "0";
 		debugLog("CarddavBackend: " . __FUNCTION__ . " - in Abook [". $folderid ."] vCard Id  [". $message["id"] ."] vCard etag [". $message["mod"] ."]");
-		return $message;
 	}
-	return false;
+	return $message;
     }
 
      /* GetMessage should return the actual SyncXXX object type. You may or may not use the '$folderid' parent folder
@@ -353,6 +383,7 @@ class BackendCarddav extends BackendDiff {
 		'ORG' => 'companyname;department',
 		'ADR;TYPE=work' => ';;businessstreet;businesscity;businessstate;businesspostalcode;businesscountry',
 		'ADR;TYPE=home' => ';;homestreet;homecity;homestate;homepostalcode;homecountry',
+//		'PHOTO;VALUE=BINARY;TYPE=JPEG;ENCODING=B' => 'picture', // Need improve parsing waiting on vCard parser to suport photo
 		'PHOTO;ENCODING=BASE64;TYPE=JPEG' => 'picture',
 		'CATEGORIES' => 'categories', // Can not create categorie on iOS, test with hotmail.com and no sync or view of categories?
 		'X-AIM' => 'imaddress',
@@ -401,6 +432,7 @@ class BackendCarddav extends BackendDiff {
 					debugLog("CarddavBackend: " . __FUNCTION__ . " - vCard PHOTO");
 					// Check for base64 encode so not need
 					//$message->picture = base64_encode($vcardparse[1]);
+					//$message->picture = imap_binary($vcardparse[1]);
 					$message->picture = $vcardparse[1];
 				} else if ($vcardparse[0] === 'BDAY') {
 					debugLog("CarddavBackend: " . __FUNCTION__ . " - vCard BDAY");
@@ -511,12 +543,6 @@ class BackendCarddav extends BackendDiff {
         $data .= "END:VCARD";
 
         debugLog("CarddavBackend: vCard[". $data ."]");
-
-        ob_start();
-        var_dump($message);
-        $result = ob_get_clean();
-        file_put_contents('/tmp/2.vcf', $result);
-
         //debugLog("CarddavBackend: vCard[". print_r($message,true) ."]");
 
         $url = $this->url . $folderid . "/";
@@ -567,11 +593,17 @@ class BackendCarddav extends BackendDiff {
                 substr($md5, 12, 4) . '-' .
                 substr($md5, 16, 4) . '-' .
                 substr($md5, 20, 12));
-*/
+
         // 6F53-4F561080-F-7B4FC200
         return strtoupper(substr($md5, 0, 4 ) . '-' . substr($md5, 4, 8) . '-' .
                 substr($md5, 12, 1) . '-' .
                 substr($md5, 14, 8));
+*/
+	// 20120427T111858Z-6F53-4F561080-F-7B4FC200
+	return strtoupper(gmdate("Ymd\THis\Z") .'-'. substr($md5, 0, 4 ) . '-' .
+		substr($md5, 4, 8) . '-' .
+		substr($md5, 12, 1) . '-' .
+		substr($md5, 14, 8));
    }
 
 };
