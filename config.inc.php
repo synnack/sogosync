@@ -164,6 +164,7 @@
     // ******************************
     // %u is replaced by the username
     // Using HTTPS is recommended
+    define('CARDDAV_PERSONAL', 'personal');
     define('CARDDAV_URL', 'http://sogo-demo.inverse.ca/SOGo/dav/%u/Contacts/');
 
 ?>
