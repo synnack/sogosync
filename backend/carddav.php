@@ -153,9 +153,9 @@ class BackendCarddav extends BackendDiff {
 	$xmlvcardlist = new SimpleXMLElement($vcardlist);
 	foreach ($xmlvcardlist->element as $vcard) {
 		$message = array();
-		$message["mod"] = $vcard->etag;
-		$message["id"] = $vcard->id;
-		$message["flags"] = 0;
+		$message["mod"] = (string)$vcard->etag;
+		$message["id"] = (string)$vcard->id;
+		$message["flags"] = "0";
 		$messagelist[] = $message;
 		debugLog("CarddavBackend: " . __FUNCTION__ ." - in Abook [". $folderid ."] vCard Id  [". $message["id"] ."] vCard etag [". $message["mod"] ."]");
 	}
@@ -179,9 +179,9 @@ class BackendCarddav extends BackendDiff {
         foreach ($xmlabooklist->addressbook_element as $response) {
 		if(strstr(basename((string)$response->url), "public")) { continue; } // if public skip as it is handle by GAL
 	        $folder = array();
-	        $folder["id"] = basename($response->url);
+	        $folder["id"] = basename((string)$response->url);
 	        $folder["parent"] = "0";
-	        $folder["mod"] = $response->display_name;
+	        $folder["mod"] = (string)$response->display_name;
 	        $folderlist[] = $folder;
 		debugLog("CarddavBackend: " . __FUNCTION__ . " - in Abook [". $folder["id"] ."] Abook Name [". $folder["mod"]. "]");
 	}
@@ -206,10 +206,17 @@ class BackendCarddav extends BackendDiff {
 		if(strstr(basename((string)$response->url), "public")) { continue; } // if public skip as it is handle by GAL
 		if(basename((string)$response->url) === $id) {
 			$folder = new SyncFolder();
-			$folder->serverid = basename($response->url);
-			$folder->displayname = $response->display_name;
+			$folder->serverid = basename((string)$response->url);
+			$folder->displayname = (string)$response->display_name;
 			$folder->parentid = "0";
-			$folder->type = SYNC_FOLDER_TYPE_USER_CONTACT;
+			if (defined(CARDDAV_PERSONAL) && strtolower($id) == CARDDAV_PERSONAL))
+			{
+				$folder->type = SYNC_FOLDER_TYPE_USER_CONTACT;
+			}
+			else
+			{
+				$folder->type = SYNC_FOLDER_TYPE_CONTACT;
+			}
 			debugLog("CarddavBackend: " . __FUNCTION__ . " - Abook Id  [". $folder->serverid ."] Abook Name [". $folder->displayname ."]");
 			return $folder;
 		}
@@ -241,9 +248,9 @@ class BackendCarddav extends BackendDiff {
 		if(strstr(basename((string)$response->url), "public")) { continue; } // if public skip as it is handle by GAL
 		if(basename((string)$response->url) === $id) {
 			$folder = array();
-			$folder["id"] = basename($response->url);
+			$folder["id"] = basename((string)$response->url);
 			$folder["parent"] = "0";
-			$folder["mod"] = $response->display_name;
+			$folder["mod"] = (string)$response->display_name;
 			debugLog("CarddavBackend: " . __FUNCTION__ . " - Abook Id  [". $folder["id"] ."] Abook Name [". $folder["mod"] ."]");
 			return $folder;
 		}
@@ -295,7 +302,7 @@ class BackendCarddav extends BackendDiff {
 		$message = array();
 		$message["mod"] = (string)$vcard->etag;
 		$message["id"] = (string)$vcard->id;
-		$message["flags"] = 0;
+		$message["flags"] = "0";
 		debugLog("CarddavBackend: " . __FUNCTION__ . " - in Abook [". $folderid ."] vCard Id  [". $message["id"] ."] vCard etag [". $message["mod"] ."]");
 		return $message;
 	}
