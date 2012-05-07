@@ -5,7 +5,7 @@
  * @link https://github.com/nuovo/vCard-parser
  * @author Roberts Bruveris, Martins Pilsetnieks
  * @see RFC 2426, RFC 2425
- * @version 0.4
+ * @version 0.4.2
 */
 	class vCard implements Countable, Iterator
 	{
@@ -22,6 +22,15 @@
 
 		private $Path = '';
 		private $RawData = '';
+
+		/**
+		 * @var array Internal options container. Options:
+		 *	bool Collapse: If true, elements that can have multiple values but have only a single value are returned as that value instead of an array
+		 *		If false, an array is returned even if it has only one value.
+		 */
+		private $Options = array(
+			'Collapse' => false
+		);
 
 		/**
 		 * @var array Internal data container. Contains vCard objects for multiple vCards and just the data for single vCards.
@@ -53,10 +62,13 @@
 		 *
 		 * @param string Path to file, optional.
 		 * @param string Raw data, optional.
+		 * @param array Additional options, optional. Currently supported options:
+		 *	bool Collapse: If true, elements that can have multiple values but have only a single value are returned as that value instead of an array
+		 *		If false, an array is returned even if it has only one value.
 		 *
 		 * One of these parameters must be provided, otherwise an exception is thrown.
 		 */
-		public function __construct($Path = false, $RawData = false)
+		public function __construct($Path = false, $RawData = false, array $Options = null)
 		{
 			// Checking preconditions for the parser.
 			// If path is given, the file should be accessible.
@@ -85,6 +97,11 @@
 			if (!$this -> Path && !$this -> RawData)
 			{
 				return true;
+			}
+
+			if ($Options)
+			{
+				$this -> Options = array_merge($this -> Options, $Options);
 			}
 
 			// Counting the begin/end separators. If there aren't any or the count doesn't match, there is a problem with the file.
@@ -258,6 +275,7 @@
 		 */
 		public function __get($Key)
 		{
+			$Key = strtolower($Key);
 			if (isset($this -> Data[$Key]))
 			{
 				if ($Key == 'agent')
@@ -277,13 +295,18 @@
 					}
 					return $Value;
 				}
+
+				if ($this -> Options['Collapse'] && is_array($this -> Data[$Key]) && (count($this -> Data[$Key]) == 1))
+				{
+					return $this -> Data[$Key][0];
+				}
 				return $this -> Data[$Key];
 			}
 			elseif ($Key == 'Mode')
 			{
 				return $this -> Mode;
 			}
-			return null;
+			return array();
 		}
 
 		/**
@@ -339,6 +362,8 @@
 		 */
 		public function __call($Key, $Arguments)
 		{
+			$Key = strtolower($Key);
+
 			if (!isset($this -> Data[$Key]))
 			{
 				$this -> Data[$Key] = array();
@@ -355,8 +380,8 @@
 			{
 				$Types = array_values(array_slice($Arguments, 1));
 
-				if (isset(self::$Spec_StructuredElements[strtolower($Key)]) &&
-					in_array($Arguments[1], self::$Spec_StructuredElements[strtolower($Key)])
+				if (isset(self::$Spec_StructuredElements[$Key]) &&
+					in_array($Arguments[1], self::$Spec_StructuredElements[$Key])
 				)
 				{
 					$LastElementIndex = 0;
@@ -414,6 +439,7 @@
 			foreach ($this -> Data as $Key => $Values)
 			{
 				$KeyUC = strtoupper($Key);
+				$Key = strtolower($Key);
 
 				if (in_array($KeyUC, array('PHOTO', 'VERSION')))
 				{
@@ -491,9 +517,11 @@
 			$Text = array_map('trim', explode(';', $Text));
 
 			$Result = array();
-			for ($i = 0; $i < count($Text) && $i < count(self::$Spec_StructuredElements[$Key]); $i++)
+			$Ctr = 0;
+
+			foreach (self::$Spec_StructuredElements[$Key] as $Index => $StructurePart)
 			{
-				$Result[self::$Spec_StructuredElements[$Key][$i]] = $Text[$i];
+				$Result[$StructurePart] = isset($Text[$Index]) ? $Text[$Index] : null;
 			}
 			return $Result;
 		}
