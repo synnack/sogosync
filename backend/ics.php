@@ -1848,8 +1848,10 @@ class PHPContentsImportProxy extends MAPIMapping {
 
         $fromname = $fromaddr = "";
 
-        if(isset($messageprops[PR_SENT_REPRESENTING_NAME]))
-            $fromname = $messageprops[PR_SENT_REPRESENTING_NAME];
+        if(isset($messageprops[PR_SENT_REPRESENTING_NAME])) {
+            // remove encapsulating double quotes from the representingname
+            $fromname = preg_replace('/^\"(.*)\"$/',"\${1}", $messageprops[PR_SENT_REPRESENTING_NAME]);
+        }
         if(isset($messageprops[PR_SENT_REPRESENTING_ENTRYID]))
             $fromaddr = $this->_getSMTPAddressFromEntryID($messageprops[PR_SENT_REPRESENTING_ENTRYID]);
 
@@ -1969,7 +1971,7 @@ class PHPContentsImportProxy extends MAPIMapping {
             if(isset($row[PR_ATTACH_NUM])) {
                 $mapiattach = mapi_message_openattach($mapimessage, $row[PR_ATTACH_NUM]);
 
-                $attachprops = mapi_getprops($mapiattach, array(PR_ATTACH_LONG_FILENAME, PR_ATTACH_FILENAME));
+                $attachprops = mapi_getprops($mapiattach, array(PR_ATTACH_LONG_FILENAME, PR_ATTACH_FILENAME, PR_ATTACH_MIME_TAG, PR_ATTACH_MIME_TAG_W));
 
                 $attach = new SyncAttachment();
 
@@ -1980,6 +1982,16 @@ class PHPContentsImportProxy extends MAPIMapping {
                     $attach->attsize = $stat["cb"];
                     $attach->displayname = w2u((isset($attachprops[PR_ATTACH_LONG_FILENAME]))?$attachprops[PR_ATTACH_LONG_FILENAME]:((isset($attachprops[PR_ATTACH_FILENAME]))?$attachprops[PR_ATTACH_FILENAME]:"attachment.bin"));
                     $attach->attname = bin2hex($this->_folderid) . ":" . bin2hex($sourcekey) . ":" . $row[PR_ATTACH_NUM];
+
+                    // fix attachment name in case of inline images
+                    if ($attach->displayname == "inline.txt" && (isset($attachprops[PR_ATTACH_MIME_TAG]) || $attachprops[PR_ATTACH_MIME_TAG_W])) {
+                        $mimetype = (isset($attachprops[PR_ATTACH_MIME_TAG]))?$attachprops[PR_ATTACH_MIME_TAG]:$attachprops[PR_ATTACH_MIME_TAG_W];
+                        $mime = explode("/", $mimetype);
+
+                        if (count($mime) == 2 && $mime[0] == "image") {
+                            $attach->displayname = "inline." . $mime[1];
+                        }
+                    }
 
                     if(!isset($message->attachments))
                         $message->attachments = array();
