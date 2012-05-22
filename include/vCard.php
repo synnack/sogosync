@@ -3,9 +3,9 @@
  * vCard class for parsing a vCard and/or creating one
  *
  * @link https://github.com/nuovo/vCard-parser
- * @author Roberts Bruveris, Martins Pilsetnieks
+ * @author Martins Pilsetnieks, Roberts Bruveris
  * @see RFC 2426, RFC 2425
- * @version 0.4.2
+ * @version 0.4.4
 */
 	class vCard implements Countable, Iterator
 	{
@@ -52,7 +52,8 @@
 			'email' => array('internet', 'x400', 'pref'),
 			'adr' => array('dom', 'intl', 'postal', 'parcel', 'home', 'work', 'pref'),
 			'label' => array('dom', 'intl', 'postal', 'parcel', 'home', 'work', 'pref'),
-			'tel' => array('home', 'msg', 'work', 'pref', 'voice', 'fax', 'cell', 'video', 'pager', 'bbs', 'modem', 'car', 'isdn', 'pcs')
+			'tel' => array('home', 'msg', 'work', 'pref', 'voice', 'fax', 'cell', 'video', 'pager', 'bbs', 'modem', 'car', 'isdn', 'pcs'),
+			'impp' => array('personal', 'business', 'home', 'work', 'mobile', 'pref')
 		);
 
 		private static $Spec_FileElements = array('photo', 'logo', 'sound');
@@ -140,11 +141,18 @@
 			}
 			else
 			{
+				// Protect the BASE64 final = sign (detected by the line beginning with whitespace), otherwise the next replace will get rid of it
+				$this -> RawData = preg_replace('{(\n\s.+)=(\n)}', '$1-base64=-$2', $this -> RawData);
+
 				// Joining multiple lines that are split with a hard wrap and indicated by an equals sign at the end of line
+				// (quoted-printable-encoded values in v2.1 vCards)
 				$this -> RawData = str_replace("=\n", '', $this -> RawData);
 
 				// Joining multiple lines that are split with a soft wrap (space or tab on the beginning of the next line
 				$this -> RawData = str_replace(array("\n ", "\n\t"), '-wrap-', $this -> RawData);
+
+				// Restoring the BASE64 final equals sign (see a few lines above)
+				$this -> RawData = str_replace("-base64=-\n", "=\n", $this -> RawData);
 
 				$Lines = explode("\n", $this -> RawData);
 
@@ -162,6 +170,7 @@
 
 					// Key is transformed to lowercase because, even though the element and parameter names are written in uppercase,
 					//	it is quite possible that they will be in lower- or mixed case.
+					// The key is trimmed to allow for non-significant WSP characters as allowed by v2.1
 					$Key = strtolower(trim(self::Unescape($Key)));
 
 					// These two lines can be skipped as they aren't necessary at all.
@@ -170,7 +179,7 @@
 						continue;
 					}
 
-					if ($Key == 'agent')
+					if ((strpos($Key, 'agent') === 0) && (stripos($Value, 'begin:vcard') !== false))
 					{
 						$Value = new vCard(false, str_replace('-wrap-', "\n", $Value));
 						if (!isset($this -> Data[$Key]))
@@ -203,19 +212,19 @@
 							{
 								case 'encoding':
 									$Encoding = $ParamValue;
-									if ($ParamValue == 'b')
+									if (in_array($ParamValue, array('b', 'base64')))
 									{
 										//$Value = base64_decode($Value);
 									}
-									elseif ($ParamValue == 'quoted-printable')
+									elseif ($ParamValue == 'quoted-printable') // v2.1
 									{
 										$Value = quoted_printable_decode($Value);
 									}
 									break;
-								case 'charset':
-									if ($Parameter[1] != 'utf-8' && $Parameter[1] != 'utf8')
+								case 'charset': // v2.1
+									if ($ParamValue != 'utf-8' && $ParamValue != 'utf8')
 									{
-										$Value = mb_convert_encoding($Value, 'UTF-8', $Parameter[1]);
+										$Value = mb_convert_encoding($Value, 'UTF-8', $ParamValue);
 									}
 									break;
 								case 'type':
@@ -371,11 +380,6 @@
 
 			$Value = isset($Arguments[0]) ? $Arguments[0] : false;
 
-			if (!$Value)
-			{
-				return $this;
-			}
-
 			if (count($Arguments) > 1)
 			{
 				$Types = array_values(array_slice($Arguments, 1));
@@ -410,7 +414,7 @@
 						);
 					}
 				}
-				elseif (in_array($Key, array_keys(self::$Spec_ElementTypes)))
+				elseif (isset(self::$Spec_ElementTypes[$Key]))
 				{
 					$this -> Data[$Key][] = array(
 						'Value' => $Value,
@@ -418,7 +422,7 @@
 					);
 				}
 			}
-			else
+			elseif ($Value)
 			{
 				$this -> Data[$Key][] = $Value;
 			}
@@ -455,7 +459,7 @@
 					}
 					$Text .= ':';
 
-					if (in_array($Key, array_keys(self::$Spec_StructuredElements)))
+					if (isset(self::$Spec_StructuredElements[$Key]))
 					{
 						$PartArray = array();
 						foreach (self::$Spec_StructuredElements[$Key] as $Part)
@@ -464,7 +468,7 @@
 						}
 						$Text .= implode(';', $PartArray);
 					}
-					elseif (is_array($Value) && in_array($Key, array_keys(self::$Spec_ElementTypes)))
+					elseif (is_array($Value) && isset(self::$Spec_ElementTypes[$Key]))
 					{
 						$Text .= $Value['Value'];
 					}
@@ -566,9 +570,14 @@
 				// Handling type parameters without the explicit TYPE parameter name (2.1 valid)
 				if (count($Parameter) == 1)
 				{
-					if (isset(self::$Spec_ElementTypes[$Key]) && in_array($Parameter, self::$Spec_ElementTypes[$Key]))
+					// Checks if the type value is allowed for the specific element
+					// The second part of the "if" statement means that email elements can have non-standard types (see the spec)
+					if (
+						(isset(self::$Spec_ElementTypes[$Key]) && in_array($Parameter[0], self::$Spec_ElementTypes[$Key])) ||
+						($Key == 'email' && is_scalar($Parameter[0]))
+					)
 					{
-						$Type[] = $Parameter;
+						$Type[] = $Parameter[0];
 					}
 				}
 				elseif (count($Parameter) > 2)
@@ -584,9 +593,9 @@
 					switch ($Parameter[0])
 					{
 						case 'encoding':
-							if (in_array($Parameter[1], array('quoted-printable', 'b')))
+							if (in_array($Parameter[1], array('quoted-printable', 'b', 'base64')))
 							{
-								$Result['encoding'] = $Parameter[1];
+								$Result['encoding'] = $Parameter[1] == 'base64' ? 'b' : $Parameter[1];
 							}
 							break;
 						case 'charset':
