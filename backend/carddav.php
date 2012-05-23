@@ -44,7 +44,7 @@ require_once('vCard.php');
 
 class BackendCarddav extends BackendDiff {
 	// SOGoSync version
-	const SOGOSYNC_VERSION = '0.2.1';
+	const SOGOSYNC_VERSION = '0.3.0';
 	// SOGoSync vcard Prodid
 	const SOGOSYNC_PRODID = 'SOGoSync';
 	private $_collection = array();
@@ -552,7 +552,7 @@ class BackendCarddav extends BackendDiff {
 		if ($id)
 			$this->_carddav->update($data, $id);
 		else
-			$this->_carddav->add($data, $UUID);
+			$id = $this->_carddav->add($data, str_replace(".vcf", "", $UUID));
 
 		return $this->StatMessage($folderid, $id);
 	}
