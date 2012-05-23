@@ -288,6 +288,7 @@ class BackendCalDAV extends BackendDiff {
 	 */
 	public function ChangeMessage($folderid, $id, $message)
 	{
+		if (defined(CALDAV_READONLY) && CALDAV_READONLY) { return false; }
 		$this->MydebugLog( __FUNCTION__ , sprintf("ChangeMessage('%s','%s')", $folderid,  $id));
 		 
 		if ($id)
@@ -332,6 +333,7 @@ class BackendCalDAV extends BackendDiff {
 	 */
 	public function DeleteMessage($folderid, $id)
 	{
+		if (defined(CALDAV_READONLY) && CALDAV_READONLY) { return false; }
 		$this->MydebugLog( __FUNCTION__ , sprintf("DeleteMessage('%s','%s')", $folderid,  $id));
 		$url = $this->_caldav_path . substr($folderid, 1) . "/" . $id;
 		$http_status_code = $this->_caldav->DoDELETERequest($url);
