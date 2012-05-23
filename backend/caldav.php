@@ -21,7 +21,7 @@ require_once('iCalendar.php');
 
 class BackendCalDAV extends BackendDiff {
 	// SOGoSync version
-	const SOGOSYNC_VERSION = '0.2.1';
+	const SOGOSYNC_VERSION = '0.3.0';
 	private $_caldav;
 	private $_caldav_path;
 	private $_collection = array();
@@ -526,7 +526,7 @@ class BackendCalDAV extends BackendDiff {
 					$body = $property->Value();
 					// truncate body, if requested
 					if(strlen($body) > $truncsize) {
-						$body = Utils::Utf8_truncate($body, $truncsize);
+						//$body = Utils::Utf8_truncate($body, $truncsize);
 						$message->bodytruncated = 1;
 					} else {
 						$body = $body;
@@ -567,13 +567,13 @@ class BackendCalDAV extends BackendDiff {
 						$trigger = $this->_MakeUTCDate($property->Value());
 						$begin = $start = date_create("@" . $message->starttime);
 						$interval = date_diff($begin, $trigger);
-						$message->reminder = $interval->format("i");
+						$message->reminder = $interval->format("%i") + $interval->format("%h") *60 + $interval->format("%a") *24*60;
 					}
 					elseif (!array_key_exists("VALUE", $parameters) || $parameters["VALUE"] == "DURATION")
 					{
 						$val = str_replace("-", "", $property->Value());
 						$interval = new DateInterval($val);
-						$message->reminder = $interval->format("i");
+						$message->reminder = $interval->format("%i") + $interval->format("%h") *60 + $interval->format("%a") *24*60;
 					}
 				}
 			}
