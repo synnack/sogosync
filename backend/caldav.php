@@ -20,7 +20,8 @@ require_once('z_RTF.php');
 require_once('iCalendar.php');
 
 class BackendCalDAV extends BackendDiff {
-
+	// SOGoSync version
+	const SOGOSYNC_VERSION = '0.2.1';
 	private $_caldav;
 	private $_caldav_path;
 	private $_collection = array();
@@ -31,6 +32,7 @@ class BackendCalDAV extends BackendDiff {
 	 */
 	public function Logon($username, $domain, $password)
 	{
+		$this->MydebugLog( __FUNCTION__ , " - Version  [" . self::SOGOSYNC_VERSION . "]");
 		$this->_caldav_path = str_replace('%u', $username, CALDAV_PATH);
 		$this->MydebugLog( __FUNCTION__ , sprintf("Logon(): URL '%s%s'",CALDAV_SERVER , $this->_caldav_path));
 		$this->_caldav = new CalDAVClient(CALDAV_SERVER . $this->_caldav_path, $username, $password);
