@@ -456,7 +456,7 @@ class BackendCarddav extends BackendDiff {
 	 * be able to delete messages on the PDA, but as soon as you sync, you'll get the item back
 	 */
 	function DeleteMessage($folderid, $id) {
-		if (defined(CARDDAV_READONLY) && CARDDAV_PERSONAL) { return false; }
+		if (defined(CARDDAV_READONLY) && CARDDAV_READONLY) { return false; }
 		debugLog("CarddavBackend: " . __FUNCTION__ . "(" . implode(", ", func_get_args()) . ")");
 		$url = $this->url . $folderid . "/";
 		$this->_carddav->set_url($url);
@@ -484,7 +484,7 @@ class BackendCarddav extends BackendDiff {
 	 * can only set them as 'read'.
 	 */
 	function ChangeMessage($folderid, $id, $message) {
-		if (defined(CARDDAV_READONLY) && CARDDAV_PERSONAL) { return false; }
+		if (defined(CARDDAV_READONLY) && CARDDAV_READONLY) { return false; }
 		debugLog("CarddavBackend: " . __FUNCTION__ . "(" . $folderid . "," . $id . ")");
 
 		$mapping = array(
