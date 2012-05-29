@@ -424,9 +424,18 @@ class BackendCarddav extends BackendDiff {
 						$message->$ms = explode(',', $vcardparse[1]);
 					} else if ($vcardparse[0] === 'NOTE') {
 						debugLog("CarddavBackend: " . __FUNCTION__ . " - vCard NOTE");
-						$message->$ms = (string)$vcardparse[1];
-						$message->bodysize = strlen($vcardparse[1]);
-						$message->bodytruncated = 0;
+						$body = (string)$vcardparse[1];
+						// truncate body, if requested
+						if(strlen($body) > $truncsize)) {
+							$body = utf8_truncate($body, $truncsize);
+							$message->bodytruncated = 1;
+							$message->bodysize = $truncsize;
+						} else {
+							$message->bodytruncated = 0;
+							$message->bodysize = strlen($body);
+						}
+						$body = str_replace("\n","\r\n", str_replace("\r","",$body));
+						$message->body = $body;
 					} else if ($vcardparse[0] === 'PHOTO') {
 						debugLog("CarddavBackend: " . __FUNCTION__ . " - vCard PHOTO");
 						// Check for base64 encode so not need
