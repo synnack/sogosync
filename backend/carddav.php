@@ -426,7 +426,7 @@ class BackendCarddav extends BackendDiff {
 						debugLog("CarddavBackend: " . __FUNCTION__ . " - vCard NOTE");
 						$body = (string)$vcardparse[1];
 						// truncate body, if requested
-						if(strlen($body) > $truncsize)) {
+						if(strlen($body) > $truncsize) {
 							$body = utf8_truncate($body, $truncsize);
 							$message->bodytruncated = 1;
 							$message->bodysize = $truncsize;
