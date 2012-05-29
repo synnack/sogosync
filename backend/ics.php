@@ -1317,13 +1317,23 @@ class ImportHierarchyChangesICS  {
     function ImportFolderChange($id, $parent, $displayname, $type) {
         //create a new folder if $id is not set
         if (!$id) {
-            $parentfentryid = mapi_msgstore_entryidfromsourcekey($this->store, hex2bin($parent));
+            // the root folder is "0" - get IPM_SUBTREE
+            if ($parent == "0") {
+                $parentprops = mapi_getprops($this->store, array(PR_IPM_SUBTREE_ENTRYID));
+                if (isset($parentprops[PR_IPM_SUBTREE_ENTRYID]))
+                    $parentfentryid = $parentprops[PR_IPM_SUBTREE_ENTRYID];
+            }
+            else
+                $parentfentryid = mapi_msgstore_entryidfromsourcekey($this->store, hex2bin($parent));
+
             $parentfolder = mapi_msgstore_openentry($this->store, $parentfentryid);
             $parentpros = mapi_getprops($parentfolder, array(PR_DISPLAY_NAME));
             $newfolder = mapi_folder_createfolder($parentfolder, $displayname, "");
             mapi_setprops($newfolder, array(PR_CONTAINER_CLASS => $this->GetContainerClassFromFolderType($type)));
             $props =  mapi_getprops($newfolder, array(PR_SOURCE_KEY));
             $id = bin2hex($props[PR_SOURCE_KEY]);
+            debugLog("Folder created with id:$id");
+            return $id;
         }
 
         mapi_importhierarchychanges_importfolderchange($this->importer, array ( PR_SOURCE_KEY => hex2bin($id), PR_PARENT_SOURCE_KEY => hex2bin($parent), PR_DISPLAY_NAME => $displayname) );
@@ -2079,7 +2089,14 @@ class PHPContentsImportProxy extends MAPIMapping {
                 return 2*1024;
             case SYNC_TRUNCATION_5K:
                 return 5*1024;
-            case SYNC_TRUNCATION_SEVEN:
+            case SYNC_TRUNCATION_10K:
+                return 10*1024;
+            case SYNC_TRUNCATION_20K:
+                return 20*1024;
+            case SYNC_TRUNCATION_50K:
+                return 50*1024;
+            case SYNC_TRUNCATION_100K:
+                return 100*1024;
             case SYNC_TRUNCATION_ALL:
                 return 1024*1024; // We'll limit to 1MB anyway
             default:
