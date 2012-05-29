@@ -529,6 +529,7 @@ class BackendCalDAV extends BackendDiff {
 					// truncate body, if requested
 					if(strlen($body) > $truncsize) {
 						//$body = Utils::Utf8_truncate($body, $truncsize);
+						$body = utf8_truncate($body, $truncsize);
 						$message->bodytruncated = 1;
 					} else {
 						$body = $body;
