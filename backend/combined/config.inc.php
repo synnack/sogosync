@@ -123,15 +123,15 @@ class BackendCombinedConfig {
             'backends' => array(
                 'c' => array(
 		    'name' => 'BackendCalDAV',
-                    'config' => $BackendCalDAV_config,
+                    'config' => self::$BackendCalDAV_config,
                  ),
                 'v' => array(
                     'name' => 'BackendCardDAV',
-                    'config' => $BackendCardDAV_config,
+                    'config' => self::$BackendCardDAV_config,
                 ),
                 'i' => array(
                     'name' => 'BackendIMAP',
-                    'config' => $BackendIMAP_config,
+                    'config' => self::$BackendIMAP_config,
                 ),
 /*
                 'i' => array(
