@@ -110,7 +110,7 @@ class BackendCardDAV extends BackendDiff {
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV>GetFolderList('%s')", $url));
 		$this->_carddav->set_url($url);
 		$abooklist = $this->_carddav->get(false, false);
-		if (empty($abooklist))
+		if ($abooklist === false)
 		{
 			return $folderlist;
 		}
@@ -141,7 +141,7 @@ class BackendCardDAV extends BackendDiff {
 		$this->_carddav->set_url($url);
 		$abooklist = $this->_carddav->get(false, false);
 		$folder = new SyncFolder();
-		if (empty($abooklist))
+		if ($abooklist === false)
 		{
 			return folder;
 		}
@@ -219,7 +219,6 @@ class BackendCardDAV extends BackendDiff {
 		// Get list of vcard for one addressbook ($folderid)
 		// for each vcard send the etag as MOD and the UID as ID
 
-	/*
 		$messagelist = array();
 		if(strstr((string)$folderid, "public"))
 		{
@@ -229,7 +228,7 @@ class BackendCardDAV extends BackendDiff {
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->GetMessageList('%s')", $url));
 		$this->_carddav->set_url($url);
 		$vcardlist = $this->_carddav->get(true, false);
-		if (empty($vcardlist))
+		if ($vcardlist === false)
 		{
 			return $messagelist;
 		}
@@ -237,37 +236,11 @@ class BackendCardDAV extends BackendDiff {
 		foreach ($xmlvcardlist->element as $vcard)
 		{
 			$id = (string)$vcard->id->__toString();
-			ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->GetMessageList(vcard '%s')", $vcard->vcard->__toString()));
+			//ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->GetMessageList(Add vcard to collection '%s')", $vcard->vcard->__toString()));
 			$this->_collection[$id] = $vcard;
-			$messageslist[] = $this->StatMessage($folderid, $id);
+			$messagelist[] = $this->StatMessage($folderid, $id);
 		}
 		return $messagelist;
-	*/
-
-		$messagelist = array();
-		if(strstr((string)$folderid, "public"))
-		{
-			return $messagelist; // if public skip as it is handle by GAL
-		}
-		$url = $this->url . $folderid . "/";
-		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->GetMessageList('%s')", $url));
-		$this->_carddav->set_url($url);
-		$vcardlist = $this->_carddav->get(false, false);
-		if (empty($vcardlist))
-		{
-			return $messagelist;
-		}
-		$xmlvcardlist = new SimpleXMLElement($vcardlist);
-		foreach ($xmlvcardlist->element as $vcard) {
-			$message = array();
-			$message["mod"] = (string)$vcard->etag->__toString();
-			$message["id"] = (string)$vcard->id->__toString();
-			$message["flags"] = "0";
-			$messagelist[] = $message;
-			ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->GetMessageList(Abook [%s] vCard Id [%s] vCard etag [%s])", $folderid, $message["id"], $message["mod"]));
-		}
-		return $messagelist;
-
 	}
 
 	/**
@@ -277,14 +250,7 @@ class BackendCardDAV extends BackendDiff {
 	public function GetMessage($folderid, $id, $contentparameters)
 	{
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->GetMessage('%s','%s')", $folderid,  $id));
-		$url = $this->url . $folderid . "/";
-		$this->_carddav->set_url($url);
-		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseVCardToAS('%s')", $url));
-		$data = $this->_carddav->get_vcard($id);
-		if ($data === false) { return false; }
-		/*
-		$data = $this->_collection[$id]['data'];
-		*/
+		$data = (string)$this->_collection[$id]->vcard->__toString();
 		return $this->_ParseVCardToAS($data, $contentparameters);
 	}
 
@@ -299,7 +265,7 @@ class BackendCardDAV extends BackendDiff {
 		// for one vcard ($id) of one addressbook ($folderid)
 		// send the etag as mod and the UUID as id
 		// the same as in GetMsgList
-	/*
+
 		$data = null;
 		if (array_key_exists($id, $this->_collection))
 		{
@@ -324,31 +290,11 @@ class BackendCardDAV extends BackendDiff {
 			}
 			ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->StatMessage(get_xml_vcard true)"));
 		}
-		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->StatMessage(vcard {%s}", $data->vcard->__toString()));
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->StatMessage(id '%s', mod '%s')", $data->id->__toString(), $data->etag->__toString()));
 		$message = array();
 		$message['id'] = (string)$data->id->__toString();
-		$message['flags'] = "0";
+		$message['flags'] = "1";
 		$message['mod'] = (string)$data->etag->__toString();
-		return $message;
-	*/
-
-		$url = $this->url . $folderid . "/";
-		$this->_carddav->set_url($url);
-		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->StatMessage('%s')", $url));
-		$data = $this->_carddav->get_xml_vcard($id);
-		$message = array();
-		if ($data === false)
-		{
-			return $message;
-		}
-		$xmlvcard = new SimpleXMLElement($data);
-		foreach($xmlvcard->element as $vcard) {
-			$message["mod"] = (string)$vcard->etag->__toString();
-			$message["id"] = (string)$vcard->id->__toString();
-			$message["flags"] = "0";
-			ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->StatMessage(in Abook [%s] vCard Id [%s] vCard etag [%s]", $folderid, $message["id"], $message["mod"]));
-		}
 		return $message;
 	}
 
@@ -363,7 +309,32 @@ class BackendCardDAV extends BackendDiff {
 		{
 			return false;
 		}
-		return false;
+
+		$data = null;
+		if ($id)
+		{
+			$data = $this->_ParseASCardToVCard($message, $id);
+		}
+		else
+		{
+			$UUID = $this->generate_uuid();
+			$data = $this->_ParseASCardToVCard($message, $UUID);
+		}
+
+		$url = $this->url . $folderid . "/";
+		$this->_carddav->set_url($url);
+		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->ChangeMessage('%s')", $url));
+
+		if ($id)
+		{
+			$this->_carddav->update($data, $id);
+		}
+		else
+		{
+			$id = $this->_carddav->add($data, str_replace(".vcf", "", $UUID));
+		}
+
+		return $this->StatMessage($folderid, $id);
 	}
 
 	/**
@@ -411,14 +382,7 @@ class BackendCardDAV extends BackendDiff {
 	{
 		// for one vcard ($id) of one addressbook ($folderid)
 		// send all vcard details in a SyncContact format
-	/*
-		$url = $this->url . $folderid . "/";
-		$this->_carddav->set_url($url);
-		Log::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseVCardToAS('%s')", $url));
-		$data = $this->_carddav->get_vcard($id);
-		if ($data === false) { return false; }
-	*/
-		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseVCardToAS('vCard[%s])", $data));
+		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseVCardToAS(vCard[%s])", $data));
 		$truncsize = Utils::GetTruncSize($contentparameters->GetTruncation());
 
 		$mapping = array(
@@ -529,7 +493,7 @@ class BackendCardDAV extends BackendDiff {
 				}
 			}
 		}
-		//ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseVCardToAS(vCard Name [%s])", $message->lastname));
+		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseVCardToAS(vCard fileas [%s])", $message->fileas));
 		return $message;
 	}
 
@@ -539,9 +503,66 @@ class BackendCardDAV extends BackendDiff {
 	 * @param string $id
 	 * @return VCard
 	 */
-	private function _ParseASCardToVCard($data, $id)
+	private function _ParseASCardToVCard($message, $id)
 	{
+		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseASCardToVCard()"));
 
+		$mapping = array(
+			'fileas' => 'FN',
+			'lastname;firstname' => 'N',
+			'nickname' => 'NICKNAME',
+			'homephonenumber' => 'TEL;TYPE=home',
+			'mobilephonenumber' => 'TEL;TYPE=cell',
+			'businessphonenumber' => 'TEL;TYPE=work',
+			'businessfaxnumber' => 'TEL;TYPE=fax',
+			'pagernumber' => 'TEL;TYPE=pager',
+			'email1address' => 'EMAIL;TYPE=work',
+			'email2address' => 'EMAIL;TYPE=home',
+			//'webpage' => 'URL;TYPE=home', does not exist in ActiveSync
+			'webpage' => 'URL;TYPE=work',
+			//'birthday' => 'BDAY', // handle separetly
+			//'jobtitle' => 'ROLE', // iOS take it as 'TITLE' Does not make sense??
+			'jobtitle' => 'TITLE',
+			'body' => 'NOTE',
+			'companyname;department' => 'ORG',
+			';;businessstreet;businesscity;businessstate;businesspostalcode;businesscountry' => 'ADR;TYPE=work',
+			';;homestreet;homecity;homestate;homepostalcode;homecountry' => 'ADR;TYPE=home',
+			//'picture' => 'PHOTO;BASE64', // handle separetly
+			//'categories' => 'CATEGORIES', // handle separetly, but i am unable to create categories form iOS
+			'imaddress' => 'X-AIM',
+		);
+
+		$data = "BEGIN:VCARD\n";
+		$data .= "UID:". $id .".vcf\n";
+		$data .= "VERSION:3.0\nPRODID:-//". self::SOGOSYNC_PRODID ." ". self::SOGOSYNC_VERSION ."//NONSGML ". self::SOGOSYNC_PRODID . " AddressBook//EN\n";
+
+		foreach($mapping as $ms => $vcard){
+			$val = '';
+			$value = explode(';', $ms);
+			foreach($value as $i)
+			{
+				if(!empty($message->$i))
+				{
+					$val .= $message->$i;
+					$val.=';';
+				}
+			}
+			$val = substr($val,0,-1);
+			if(empty($val)) { continue; }
+			$data .= $vcard.":".$val."\n";
+		}
+		if(!empty($message->categories))
+			$data .= "CATEGORIES:".implode(',', $message->categories)."\n";
+		if(!empty($message->picture))
+			// FIXME first line 50 char next one 74
+			// Apparently iOS send the file on BASE64
+			$data .= "PHOTO;ENCODING=BASE64;TYPE=JPEG:".substr(chunk_split($message->picture, 50, "\n "), 0, -1);
+		if(isset($message->birthday))
+			$data .= "BDAY:".date('Y-m-d', $message->birthday)."\n";
+		$data .= "END:VCARD";
+
+		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseASCardToVCard('vCard[%s]", $data));
+		return $data;
 	}
 
 	/**
