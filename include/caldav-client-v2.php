@@ -11,7 +11,7 @@
 * Update xbgmsharp <xbgmsharp@gmail.com>
 */
 
-require_once('/usr/share/awl/inc/XMLDocument.php');
+require_once('XMLDocument.php');
 
 /**
 * A class for holding basic calendar information

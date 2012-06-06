@@ -46,7 +46,7 @@
 * @license   http://gnu.org/copyleft/gpl.html GNU GPL v2 or later
 *
 */
-require_once('/usr/share/awl/inc/XMLElement.php');
+require_once('XMLElement.php');
 /* Commented out, only needed by deprecated functions
 require_once('AwlQuery.php');
 */
