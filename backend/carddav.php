@@ -311,6 +311,7 @@ class BackendCardDAV extends BackendDiff {
 		}
 
 		$data = null;
+		$UUID = null;
 		if ($id)
 		{
 			$data = $this->_ParseASCardToVCard($message, $id);

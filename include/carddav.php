@@ -364,10 +364,15 @@ class carddav_backend
 	 * @param	string	$vcard	vCard
 	 * @return	string			The new vCard id
 	 */
-	public function add($vcard)
+	public function add($vcard, $vcard_id = null)
 	{
-		$vcard_id	= $this->generate_vcard_id();
-		$vcard		= $this->clean_vcard($vcard);
+
+		if (!$vcard_id)
+		{
+			$vcard_id = $this->generate_vcard_id();
+		}
+
+		$vcard = $this->clean_vcard($vcard);
 
 		if ($this->query($this->url . $vcard_id . '.vcf', 'PUT', $vcard, 'text/vcard', true) === true)
 		{
