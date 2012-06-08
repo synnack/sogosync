@@ -146,7 +146,7 @@ class BackendCardDAV extends BackendDiff {
 		if ($abooklist === false)
 		{
 			ZLog::Write(LOGLEVEL_WARN, sprintf("BackendCardDAV->GetFolder(): Empty AddressBook List"));
-			return folder;
+			return $folder;
 		}
 		$xmlabooklist = new SimpleXMLElement($abooklist);
 		foreach ($xmlabooklist->addressbook_element as $response) {
@@ -169,10 +169,9 @@ class BackendCardDAV extends BackendDiff {
 					$folder->type = SYNC_FOLDER_TYPE_CONTACT;
 				}
 				ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->GetFolder(Abook Id [%s] Abook Name [%s])", $folder->serverid, $folder->displayname));
-				return $folder;
 			}
 		}
-		return folder;
+		return $folder;
 	}
 
 	/**
