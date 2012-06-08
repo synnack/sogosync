@@ -55,9 +55,6 @@ See also
   * http://msdn.microsoft.com/en-us/library/dd299440(v=exchg.80).aspx
   * http://msdn.microsoft.com/en-us/library/cc463911(v=exchg.80).aspx
 
-* [PHP-Push-2](https://github.com/dupondje/PHP-Push-2)
-
-
 Libraries used
 ------------
 
