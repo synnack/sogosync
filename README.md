@@ -55,9 +55,6 @@ See also
   * http://msdn.microsoft.com/en-us/library/dd299440(v=exchg.80).aspx
   * http://msdn.microsoft.com/en-us/library/cc463911(v=exchg.80).aspx
 
-* [php-push](https://github.com/dupondje/PHP-Push-2)
-
-
 Libraries used
 ------------
 
@@ -65,9 +62,10 @@ Libraries used
 	* Thanks to Christian Putzke for updating his library
 * [vCard-parser](https://github.com/nuovo/vCard-parser/)
 	* Thanks to Nuovo for updating his library
-* [php-push2](https://github.com/dupondje/PHP-Push-2)
+* [PHP-Push-2](https://github.com/dupondje/PHP-Push-2)
 	* Thanks to dupondje for updating his library
 * [CalDAV-Client](http://wiki.davical.org/w/Developer_Setup)
+
 
 Installation
 ------------
@@ -98,7 +96,7 @@ Nothing is need to be change in this file. It only combined 3 backends.
 Permission
 
     $ mkdir -p /var/lib/z-push/ /var/log/z-push/
-    $ chmod -R 777 /var/log/z-push/ /var/lib/z-push/
+    $ chmod -R www-data:www-data /var/log/z-push/ /var/lib/z-push/
 
 ### Edit config.php
  * Set TimeZone

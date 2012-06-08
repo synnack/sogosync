@@ -844,11 +844,12 @@ class BackendZarafa implements IBackend, ISearchProvider {
     public function MeetingResponse($requestid, $folderid, $response) {
         // Use standard meeting response code to process meeting request
         $reqentryid = mapi_msgstore_entryidfromsourcekey($this->store, hex2bin($folderid), hex2bin($requestid));
-        if ($reqentryid)
-            $mapimessage = mapi_msgstore_openentry($this->store, $reqentryid);
+        if (!$reqentryid)
+            throw new StatusException(sprintf("BackendZarafa->MeetingResponse('%s', '%s', '%s'): Error, unable to entryid of the message 0x%X", $requestid, $folderid, $response, mapi_last_hresult()), SYNC_MEETRESPSTATUS_INVALIDMEETREQ);
 
+        $mapimessage = mapi_msgstore_openentry($this->store, $reqentryid);
         if(!$mapimessage)
-            throw new StatusException(sprintf("BackendZarafa->MeetingResponse('%s','%s', '%s'): Error, unable to open request message for response 0x%X", $requestid, $folderid, $response, mapi_last_hresult()), SYNC_MEETRESPSTATUS_MAILBOXERROR);
+            throw new StatusException(sprintf("BackendZarafa->MeetingResponse('%s','%s', '%s'): Error, unable to open request message for response 0x%X", $requestid, $folderid, $response, mapi_last_hresult()), SYNC_MEETRESPSTATUS_INVALIDMEETREQ);
 
         $meetingrequest = new Meetingrequest($this->store, $mapimessage);
 
@@ -942,7 +943,7 @@ class BackendZarafa implements IBackend, ISearchProvider {
     /**
      * The folder should be considered by the sink.
      * Folders which were not initialized should not result in a notification
-     * of IBacken->ChangesSink().
+     * of IBackend->ChangesSink().
      *
      * @param string        $folderid
      *
@@ -959,7 +960,7 @@ class BackendZarafa implements IBackend, ISearchProvider {
         // add entryid to the monitored folders
         $this->changesSinkFolders[$entryid] = $folderid;
 
-        // check if this store is already monitores, else advise it
+        // check if this store is already monitored, else advise it
         if (!in_array($this->store, $this->changesSinkStores)) {
             mapi_msgstore_advise($this->store, null, fnevObjectModified | fnevObjectCreated | fnevObjectMoved | fnevObjectDeleted, $this->changesSink);
             $this->changesSinkStores[] = $this->store;
@@ -988,7 +989,7 @@ class BackendZarafa implements IBackend, ISearchProvider {
                 $notifications[] = $this->changesSinkFolders[$sinknotif['parentid']];
             }
             // deletes and moves
-            else if (isset($sinknotif['oldparentid']) && array_key_exists($sinknotif['oldparentid'], $this->changesSinkFolders)) {
+            if (isset($sinknotif['oldparentid']) && array_key_exists($sinknotif['oldparentid'], $this->changesSinkFolders)) {
                 $notifications[] = $this->changesSinkFolders[$sinknotif['oldparentid']];
             }
         }
@@ -1184,6 +1185,45 @@ class BackendZarafa implements IBackend, ISearchProvider {
             $items[$i]['folderid'] = bin2hex($rows[$i][PR_PARENT_SOURCE_KEY]);
         }
         return $items;
+    }
+
+    /**
+    * Terminates a search for a given PID
+    *
+    * @param int $pid
+    *
+    * @return boolean
+    */
+    public function TerminateSearch($pid) {
+        ZLog::Write(LOGLEVEL_DEBUG, sprintf("ZarafaBackend->TerminateSearch(): terminating search for pid %d", $pid));
+        $storeProps = mapi_getprops($this->store, array(PR_STORE_SUPPORT_MASK, PR_FINDER_ENTRYID));
+        if (($storeProps[PR_STORE_SUPPORT_MASK] & STORE_SEARCH_OK) != STORE_SEARCH_OK) {
+            ZLog::Write(LOGLEVEL_WARN, "Store doesn't support search folders. Public store doesn't have FINDER_ROOT folder");
+            return false;
+        }
+
+        $finderfolder = mapi_msgstore_openentry($this->store, $storeProps[PR_FINDER_ENTRYID]);
+        if(mapi_last_hresult() != NOERROR) {
+            ZLog::Write(LOGLEVEL_WARN, sprintf("Unable to open search folder (0x%X)", mapi_last_hresult()));
+            return false;
+        }
+
+        $hierarchytable = mapi_folder_gethierarchytable($finderfolder);
+        mapi_table_restrict($hierarchytable,
+            array(RES_CONTENT,
+                array(
+                    FUZZYLEVEL      => FL_PREFIX,
+                    ULPROPTAG       => PR_DISPLAY_NAME,
+                    VALUE           => array(PR_DISPLAY_NAME=>"Z-Push Search Folder ".$pid)
+                )
+            ),
+            TBL_BATCH);
+
+        $folders = mapi_table_queryallrows($hierarchytable, array(PR_ENTRYID, PR_DISPLAY_NAME, PR_LAST_MODIFICATION_TIME));
+        foreach($folders as $folder) {
+            mapi_folder_deletefolder($finderfolder, $folder[PR_ENTRYID]);
+        }
+        return true;
     }
 
     /**
@@ -1558,7 +1598,7 @@ class BackendZarafa implements IBackend, ISearchProvider {
      * @return mapiFolderObject
      */
     private function createSearchFolder($searchFolderRoot) {
-        $folderName = "Z-Push Search Folder";
+        $folderName = "Z-Push Search Folder ".@getmypid();
         $searchFolders = mapi_folder_gethierarchytable($searchFolderRoot);
         $restriction = array(
             RES_CONTENT,
