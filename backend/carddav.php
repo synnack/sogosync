@@ -249,6 +249,8 @@ class BackendCardDAV extends BackendDiff {
 	 */
 	public function GetMessage($folderid, $id, $contentparameters)
 	{
+		// for one vcard ($id) of one addressbook ($folderid)
+		// send all vcard details in a SyncContact format
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->GetMessage('%s','%s')", $folderid,  $id));
 		$data = (string)$this->_collection[$id]->vcard->__toString();
 		return $this->_ParseVCardToAS($data, $contentparameters);
@@ -332,7 +334,7 @@ class BackendCardDAV extends BackendDiff {
 		}
 		else
 		{
-			$id = $this->_carddav->add($data, str_replace(".vcf", "", $UUID));
+			$id = $this->_carddav->add($data, str_replace(".vcf", null, $UUID));
 		}
 
 		return $this->StatMessage($folderid, $id);
@@ -381,11 +383,131 @@ class BackendCardDAV extends BackendDiff {
 	 */
 	private function _ParseVCardToAS($data, $contentparameters)
 	{
-		// for one vcard ($id) of one addressbook ($folderid)
-		// send all vcard details in a SyncContact format
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseVCardToAS(vCard[%s])", $data));
 		$truncsize = Utils::GetTruncSize($contentparameters->GetTruncation());
 
+		$vCard = new vCard(false, $data);
+		if (count($vCard) != 1)
+		{
+			return false;
+		}
+
+		$card = $vCard->access();
+
+		$mapping = array(
+			'fn' => 'fileas',
+			'n' => array(   'LastName' => 'lastname', 'FirstName' => 'firstname'),
+			//'nickname' => 'nickname', // handle manually
+			'tel' => array('home' => 'homephonenumber',
+						'cell' => 'mobilephonenumber',
+						'work' => 'businessphonenumber',
+						'fax' => 'businessfaxnumber',
+						'pager' => 'pagernumber'),
+			'email' => array('work' => 'email1address', 'home' => 'email2address'),
+			'url' => array('work' => 'webpage', 'home' => 'webpage'), // does not exist in ActiveSync
+			'bday' => 'birthday',
+			//'role' => 'jobtitle', iOS take it as 'TITLE' Does not make sense??
+			'title' => 'jobtitle',
+			'note' => 'body',
+			'org' => array('Name' => 'companyname', 'Unit1' => 'department'),
+			'adr' => array ('work' =>
+								array('POBox' => '',
+									'ExtendedAddress' => '',
+									'StreetAddress' => 'businessstreet',
+									'Locality' => 'businesscity',
+									'Region' => 'businessstate',
+									'PostalCode' => 'businesspostalcode',
+									'Country' => 'businesscountry'),
+								'home' =>
+								array('POBox' => '',
+									'ExtendedAddress' => '',
+									'StreetAddress' => 'homestreet',
+									'Locality' => 'homecity',
+									'Region' => 'homestate',
+									'PostalCode' => 'homepostalcode',
+									'Country' => 'homecountry')
+			),
+			'photo' => array('jpeg' => 'picture'),
+			//'categories' => 'categories', // handle manually
+			'x-aim' => 'imaddress',
+		);
+
+		$message = new SyncContact();
+
+		foreach ($mapping as $vcard_attribute => $ms_attribute)
+		{
+			ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseVCardToAS(vCard[%s] => ms[%s])", $vcard_attribute, $ms_attribute));
+			if (empty($card[$vcard_attribute]))
+			{
+				continue;
+			}
+			if (is_array($card[$vcard_attribute]))
+			{
+				// tel;email;url;org
+				foreach ($card[$vcard_attribute] as $key => $value) {
+					if (empty($value) || empty($ms_attribute[$key]))
+					{
+						continue;
+					}
+					// adr
+					if (is_array($value))
+					{
+						foreach ($value as $adrkey => $adrvalue) {
+							if (empty($adrvalue) || empty($ms_attribute[$key][$adrkey]))
+							{
+								continue;
+							}
+							$message->$ms_attribute[$key][$adrkey] = $adrvalue;
+						}
+					}
+					else
+					{
+					 $message->$ms_attribute[$key] = $value;
+					}
+				}
+			}
+			else
+			{
+				if ($vcard_attribute === "note" && !empty($card[$vcard_attribute]))
+				{
+					$message->$ms_attribute = $card[$vcard_attribute];
+					$message->bodytruncated=0;
+					$message->bodysize =  strlen($card[$vcard_attribute]);
+				}
+				else if ($vcard_attribute === "bday" && !empty($card[$vcard_attribute]))
+				{
+					$tz = date_default_timezone_get();
+					date_default_timezone_set('UTC');
+					$message->$ms_attribute = strtotime($card[$vcard_attribute]);
+					date_default_timezone_set($tz);
+				}
+				else
+				{
+					$message->$ms_attribute = $card[$vcard_attribute];
+				}
+			}
+		}
+
+		if ( isset($card['nickname']) && !empty($card['nickname']) && is_array($card['nickname']) )
+		{
+			$message->nickname = $card['nickname'][0];
+		}
+		if ( isset($card['categories']) && !empty($card['categories']) )
+		{
+			$message->categories = implode(',', $card['categories']);
+			$itemTagNames = array();
+			for ($i=0;$i<count($card['categories']);$i++) {
+				//print $card['categories'][$i] ."\n";
+				$itemTagNames[] = $card['categories'][$i];
+			}
+			//print "message->categories=". $card['categories'] ."\n";
+			$message->categories = $itemTagNames;
+		}
+
+		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseVCardToAS(vCard fileas [%s])", $message->fileas));
+		return $message;
+
+	/*
 		$mapping = array(
 			'FN' => 'fileas',
 			'N' => 'lastname;firstname',
@@ -496,6 +618,7 @@ class BackendCardDAV extends BackendDiff {
 		}
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseVCardToAS(vCard fileas [%s])", $message->fileas));
 		return $message;
+	*/
 	}
 
 	/**
