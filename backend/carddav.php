@@ -112,6 +112,7 @@ class BackendCardDAV extends BackendDiff {
 		$abooklist = $this->_carddav->get(false, false);
 		if ($abooklist === false)
 		{
+			ZLog::Write(LOGLEVEL_WARN, sprintf("BackendCardDAV->GetFolderList(): Empty AddressBook List"));
 			return $folderlist;
 		}
 		$xmlabooklist = new SimpleXMLElement($abooklist);
@@ -119,6 +120,7 @@ class BackendCardDAV extends BackendDiff {
 		{
 			if(strstr(basename((string)$response->url->__toString()), "public"))
 			{
+				ZLog::Write(LOGLEVEL_INFO, sprintf("BackendCardDAV->GetFolderList(): Skip public AddressBook List"));
 				continue; // if public skip as it is handle by GAL
 			}
 			$folderlist[] = $this->StatFolder(basename((string)$response->url));
@@ -143,12 +145,14 @@ class BackendCardDAV extends BackendDiff {
 		$folder = new SyncFolder();
 		if ($abooklist === false)
 		{
+			ZLog::Write(LOGLEVEL_WARN, sprintf("BackendCardDAV->GetFolder(): Empty AddressBook List"));
 			return folder;
 		}
 		$xmlabooklist = new SimpleXMLElement($abooklist);
 		foreach ($xmlabooklist->addressbook_element as $response) {
 			if(strstr(basename((string)$response->url->__toString()), "public"))
 			{
+				ZLog::Write(LOGLEVEL_INFO, sprintf("BackendCardDAV->GetFolder(): Skip public AddressBook List"));
 				continue; // if public skip as it is handle by GAL
 			}
 			if(basename((string)$response->url->__toString()) === $id)
@@ -222,6 +226,7 @@ class BackendCardDAV extends BackendDiff {
 		$messagelist = array();
 		if(strstr((string)$folderid, "public"))
 		{
+			ZLog::Write(LOGLEVEL_INFO, sprintf("BackendCardDAV->GetMessageList(): Skip public AddressBook List"))
 			return $messagelist; // if public skip as it is handle by GAL
 		}
 		$url = $this->url . $folderid . "/";
@@ -230,6 +235,7 @@ class BackendCardDAV extends BackendDiff {
 		$vcardlist = $this->_carddav->get(true, false);
 		if ($vcardlist === false)
 		{
+			ZLog::Write(LOGLEVEL_WARN, sprintf("BackendCardDAV->GetMessageList(): Empty AddressBook"));
 			return $messagelist;
 		}
 		$xmlvcardlist = new SimpleXMLElement($vcardlist);
@@ -280,7 +286,7 @@ class BackendCardDAV extends BackendDiff {
 			$xmldata = $this->_carddav->get_xml_vcard($id);
 			if ($xmldata === false)
 			{
-				ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->StatMessage(get_xml_vcard false)"));
+				ZLog::Write(LOGLEVEL_WARN, sprintf("BackendCardDAV->StatMessage(): VCard not found"));
 				return false;
 			}
 			$xmlvcard = new SimpleXMLElement($xmldata);
