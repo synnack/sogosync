@@ -347,7 +347,7 @@ class BackendCalDAV extends BackendDiff {
 	 */
 	private function _ParseVEventToAS($data, $contentparameters)
 	{
-		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCalDAV->_ParseVEventToAS(): Parsing VEvent"));
+		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCalDAV->_ParseVEventToAS(ical[%s])", $data));
 		$truncsize = Utils::GetTruncSize($contentparameters->GetTruncation());
 		$message = new SyncAppointment();
 		 
