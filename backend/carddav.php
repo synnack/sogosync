@@ -225,13 +225,13 @@ class BackendCardDAV extends BackendDiff {
 		$messagelist = array();
 		if(strstr((string)$folderid, "public"))
 		{
-			ZLog::Write(LOGLEVEL_INFO, sprintf("BackendCardDAV->GetMessageList(): Skip public AddressBook List"))
+			ZLog::Write(LOGLEVEL_INFO, sprintf("BackendCardDAV->GetMessageList(): Skip public AddressBook List"));
 			return $messagelist; // if public skip as it is handle by GAL
 		}
 		$url = $this->url . $folderid . "/";
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->GetMessageList('%s')", $url));
 		$this->_carddav->set_url($url);
-		$vcardlist = $this->_carddav->get(true, false);
+		$vcardlist = $this->_carddav->get(false, false);
 		if ($vcardlist === false)
 		{
 			ZLog::Write(LOGLEVEL_WARN, sprintf("BackendCardDAV->GetMessageList(): Empty AddressBook"));
@@ -257,6 +257,30 @@ class BackendCardDAV extends BackendDiff {
 		// for one vcard ($id) of one addressbook ($folderid)
 		// send all vcard details in a SyncContact format
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->GetMessage('%s','%s')", $folderid,  $id));
+
+		$data = null;
+		// We have an ID and the vcard data
+		if (array_key_exists($id, $this->_collection) && isset($this->_collection[$id]->vcard))
+		{
+			ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->GetMessage(array_key_exists and vcard)"));
+		}
+		else
+		{
+			$url = $this->url . $folderid . "/";
+			$this->_carddav->set_url($url);
+			ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->GetMessage('%s')", $url));
+			$xmldata = $this->_carddav->get_xml_vcard($id);
+			if ($xmldata === false)
+			{
+				ZLog::Write(LOGLEVEL_WARN, sprintf("BackendCardDAV->GetMessage(): vCard not found"));
+				return false;
+			}
+			$xmlvcard = new SimpleXMLElement($xmldata);
+			foreach($xmlvcard->element as $vcard)
+			{
+				$this->_collection[$id] = $vcard;
+			}
+		}
 		$data = (string)$this->_collection[$id]->vcard->__toString();
 		return $this->_ParseVCardToAS($data, $contentparameters);
 	}
@@ -274,9 +298,9 @@ class BackendCardDAV extends BackendDiff {
 		// the same as in GetMsgList
 
 		$data = null;
-		if (array_key_exists($id, $this->_collection))
+		// We have an ID and no vcard data
+		if (array_key_exists($id, $this->_collection) && isset($this->_collection[$id]->id) && isset($this->_collection[$id]->etag))
 		{
-			$data = $this->_collection[$id];
 			ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->StatMessage(array_key_exists)"));
 		}
 		else
@@ -293,10 +317,11 @@ class BackendCardDAV extends BackendDiff {
 			$xmlvcard = new SimpleXMLElement($xmldata);
 			foreach($xmlvcard->element as $vcard)
 			{
-				$data = $vcard;
+				$this->_collection[$id] = $vcard;
 			}
 			ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->StatMessage(get_xml_vcard true)"));
 		}
+		$data = $this->_collection[$id];
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->StatMessage(id '%s', mod '%s')", $data->id->__toString(), $data->etag->__toString()));
 		$message = array();
 		$message['id'] = (string)$data->id->__toString();
@@ -394,6 +419,7 @@ class BackendCardDAV extends BackendDiff {
 		$vCard = new vCard(false, $data);
 		if (count($vCard) != 1)
 		{
+			ZLog::Write(LOGLEVEL_WARN, sprintf("BackendCardDAV->_ParseVCardToAS(): Error parsing vCard[%s]", $data));
 			return false;
 		}
 
@@ -401,7 +427,7 @@ class BackendCardDAV extends BackendDiff {
 
 		$mapping = array(
 			'fn' => 'fileas',
-			'n' => array(   'LastName' => 'lastname', 'FirstName' => 'firstname'),
+			'n' => array('LastName' => 'lastname', 'FirstName' => 'firstname'),
 			//'nickname' => 'nickname', // handle manually
 			'tel' => array('home' => 'homephonenumber',
 						'cell' => 'mobilephonenumber',
@@ -441,7 +467,7 @@ class BackendCardDAV extends BackendDiff {
 
 		foreach ($mapping as $vcard_attribute => $ms_attribute)
 		{
-			ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseVCardToAS(vCard[%s] => ms[%s])", $vcard_attribute, $ms_attribute));
+			//ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCardDAV->_ParseVCardToAS(vCard[%s] => ms[%s])", $vcard_attribute, $ms_attribute));
 			if (empty($card[$vcard_attribute]))
 			{
 				continue;
@@ -475,9 +501,18 @@ class BackendCardDAV extends BackendDiff {
 			{
 				if ($vcard_attribute === "note" && !empty($card[$vcard_attribute]))
 				{
-					$message->$ms_attribute = $card[$vcard_attribute];
-					$message->bodytruncated=0;
-					$message->bodysize =  strlen($card[$vcard_attribute]);
+					$body = $card[$vcard_attribute];
+					// truncate body, if requested
+					if(strlen($body) > $truncsize) {
+						$body = Utils::Utf8_truncate($body, $truncsize);
+						$message->bodytruncated = 1;
+					} else {
+						$body = $body;
+						$message->bodytruncated = 0;
+					}
+					$body = str_replace("\n","\r\n", str_replace("\r","",$body));
+					$message->body = $body;
+					$message->bodysize = strlen($body);
 				}
 				else if ($vcard_attribute === "bday" && !empty($card[$vcard_attribute]))
 				{
