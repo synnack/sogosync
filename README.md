@@ -96,9 +96,13 @@ Nothing is need to be change in this file. It only combined 3 backends.
 Permission
 
     $ mkdir -p /var/lib/z-push/ /var/log/z-push/
+
 * Debian system
+
     $ chown -R www-data:www-data /var/log/z-push/ /var/lib/z-push/
+
 * RedHat system
+
     $ chown -R TODO /var/log/z-push/ /var/lib/z-push/
 
 ### Edit config.php
