@@ -71,7 +71,7 @@ class CalDAVClient {
   *
   * @var string
   */
-  public $user_agent = 'DAViCalClient';
+  public $user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:13.0) Gecko/20100101 Firefox/13.0';
 
   protected $headers = array();
   protected $body = "";

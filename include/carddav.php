@@ -111,7 +111,7 @@ class carddav_backend
 	 *
 	 * @constant	string
 	 */
-	const USERAGENT = 'CardDAV PHP/';
+	const USERAGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:13.0) Gecko/20100101 Firefox/13.0';
 
 	/**
 	 * CardDAV server url
@@ -500,7 +500,7 @@ class carddav_backend
 			curl_setopt($this->curl, CURLOPT_SSL_VERIFYHOST, false);
 			curl_setopt($this->curl, CURLOPT_SSL_VERIFYPEER, false);
 			curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
-			curl_setopt($this->curl, CURLOPT_USERAGENT, self::USERAGENT.self::VERSION);
+			curl_setopt($this->curl, CURLOPT_USERAGENT);
 
 			if ($this->auth !== null)
 			{
