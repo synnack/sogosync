@@ -88,6 +88,7 @@ File 'config.php' is the original file from Z-Push SVN repository:
     $ cp config.inc.php config.php
 
 File 'backend/combined/config.php' is the original file from Z-Push SVN repository:
+
 Nothing is need to be change in this file. It only combined 3 backends.
 
     $ cp backend/combined/config.php backend/combined/config.php.org
@@ -101,9 +102,11 @@ Permission
 
     $ chown -R www-data:www-data /var/log/z-push/ /var/lib/z-push/
 
+
 * RedHat system
 
     $ chown -R TODO /var/log/z-push/ /var/lib/z-push/
+
 
 ### Edit config.php
  * Set TimeZone
