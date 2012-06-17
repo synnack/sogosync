@@ -294,6 +294,7 @@ class BackendCalDAV extends BackendDiff {
 
 		$data = $this->_ParseASToVCalendar($message, $folderid, substr($id, 0, strlen($id)-4));
 
+		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCalDAV->ChangeMessage('VCalendar[%s]", $data));
 		$url = $this->_caldav_path . substr($folderid, 1) . "/" . $id;
 		$etag_new = $this->_caldav->DoPUTRequest($url, $data, $etag);
 
@@ -815,8 +816,9 @@ class BackendCalDAV extends BackendDiff {
 		{
 			$valarm = new iCalComponent();
 			$valarm->SetType("VALARM");
-			$trigger = "-PT0H" . $data->reminder . "M0S";
-			$valarm->AddProperty("TRIGGER", $trigger);
+			$valarm->AddProperty("ACTION" , "DISPLAY");
+			$trigger = "-PT" . $data->reminder . "M";
+			$valarm->AddProperty("TRIGGER;VALUE=DURATION", $trigger);
 			$vevent->AddComponent($valarm);
 		}
 		if (isset($data->rtf))
