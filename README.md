@@ -19,7 +19,7 @@ Requirements
   * Did not test other than SOGo but it should work with any caldav/cardav groupware, feedback are welcome.
 * An ActiveSync compatible mobile device
 	* [Comparison of Exchange ActiveSync clients](http://en.wikipedia.org/wiki/Comparison_of_Exchange_ActiveSync_clients)
-* PHP5 with the following libraries for a Debian system
+* PHP5 with the following libraries for a Debian/Ubuntu system
 
         $ apt-get install php5-curl php5-ldap php5-imap php-mail libawl-php
 
@@ -29,6 +29,7 @@ Requirements
         $ yum install php-curl php-common php-ldap php-imap php-imap libawl-php
 
 
+* libawl-php is part of Redhat and Debian, but it is not available for SME and CentOS. You can find the package at http://debian.mcmillan.net.nz/packages/awl/
 
 Thanks
 ------
@@ -66,6 +67,13 @@ Libraries used
 	* Thanks to dupondje for updating his library
 * [CalDAV-Client](http://wiki.davical.org/w/Developer_Setup)
 
+Donate
+------------
+
+[![PayPal - Donate](https://www.paypal.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=TMZ6YBPDLAN84&lc=US&item_name=A%20more%20awesome%20SOGoSync&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted)
+
+I'm building SOGoSync in my spare time, so if you want to buy me a coke while I'm coding, that would be awesome!
+
 
 Installation
 ------------
@@ -100,12 +108,12 @@ Permission
 
 * Debian system
 
-    $ chown -R www-data:www-data /var/log/z-push/ /var/lib/z-push/
+        $ chown -R www-data:www-data /var/log/z-push/ /var/lib/z-push/
 
 
 * RedHat system
 
-    $ chown -R TODO /var/log/z-push/ /var/lib/z-push/
+        $ chown -R apache:apache /var/log/z-push/ /var/lib/z-push/
 
 
 ### Edit config.php
