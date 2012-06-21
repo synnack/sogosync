@@ -27,6 +27,7 @@ class BackendCalDAV extends BackendDiff {
 	private $_caldav;
 	private $_caldav_path;
 	private $_collection = array();
+	private $_username;
 
 	/**
 	 * Login to the CalDAV backend
@@ -35,10 +36,10 @@ class BackendCalDAV extends BackendDiff {
 	public function Logon($username, $domain, $password)
 	{
 		ZLog::Write(LOGLEVEL_INFO, sprintf("BackendCardDAV->%s version %s", self::SOGOSYNC_PRODID, self::SOGOSYNC_VERSION));
-
+		$this->_username = $username;
 		$this->_caldav_path = str_replace('%u', $username, CALDAV_PATH);
-		$this->_caldav = new CalDAVClient(CALDAV_SERVER . $this->_caldav_path, $username, $password);
 		$this->_caldav_path = $this->_caldav_path . "Calendar/";
+		$this->_caldav = new CalDAVClient(CALDAV_SERVER . $this->_caldav_path, $username, $password);
 		$options = $this->_caldav->DoOptionsRequest();
 		if (isset($options["PROPFIND"]))
 		{
@@ -278,7 +279,7 @@ class BackendCalDAV extends BackendDiff {
 	public function ChangeMessage($folderid, $id, $message)
 	{
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCalDAV->ChangeMessage('%s','%s')", $folderid,  $id));
-		 
+
 		if ($id)
 		{
 			$mod = $this->StatMessage($folderid, $id);
@@ -293,8 +294,8 @@ class BackendCalDAV extends BackendDiff {
 		}
 
 		$data = $this->_ParseASToVCalendar($message, $folderid, substr($id, 0, strlen($id)-4));
-
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCalDAV->ChangeMessage('VCalendar[%s]", $data));
+
 		$url = $this->_caldav_path . substr($folderid, 1) . "/" . $id;
 		$etag_new = $this->_caldav->DoPUTRequest($url, $data, $etag);
 
@@ -760,15 +761,15 @@ class BackendCalDAV extends BackendDiff {
 		{
 			$vevent->AddProperty("SUMMARY", $data->subject);
 		}
-		if (isset($data->organizername))
+		if (isset($data->organizeremail))
 		{
-			if (isset($data->organizeremail))
+			if (isset($data->organizername))
 			{
-				$vevent->AddProperty("ORGANIZER", sprintf("CN=%s:MAILTO:%s", $data->organizername, $data->organizeremail));
+				$vevent->AddProperty("ORGANIZER", sprintf("MAILTO:%s", $data->organizeremail), array("CN" => $data->organizername));
 			}
 			else
 			{
-				$vevent->AddProperty("ORGANIZER", sprintf("CN=%s", $data->organizername));
+				$vevent->AddProperty("ORGANIZER", sprintf("MAILTO:%s", $data->organizeremail));
 			}
 		}
 		if (isset($data->location))
@@ -816,7 +817,7 @@ class BackendCalDAV extends BackendDiff {
 		{
 			$valarm = new iCalComponent();
 			$valarm->SetType("VALARM");
-			$valarm->AddProperty("ACTION" , "DISPLAY");
+			$valarm->AddProperty("ACTION", "DISPLAY");
 			$trigger = "-PT" . $data->reminder . "M";
 			$valarm->AddProperty("TRIGGER;VALUE=DURATION", $trigger);
 			$vevent->AddComponent($valarm);
@@ -847,6 +848,13 @@ class BackendCalDAV extends BackendDiff {
 		}
 		if (isset($data->attendees) && is_array($data->attendees))
 		{
+			//If there are attendees, we need to set ORGANIZER
+			//Some phones doesn't send the organizeremail, so we gotto get it somewhere else.
+			//Lets use the login here ($username)
+			if (!isset($data->organizeremail))
+			{
+				$vevent->AddProperty("ORGANIZER", sprintf("MAILTO:%s", $this->_username));
+			}
 			foreach ($data->attendees as $att)
 			{
 				$att_str = sprintf("MAILTO:%s", $att->email);
@@ -1148,6 +1156,7 @@ class BackendCalDAV extends BackendDiff {
 		{
 			$valarm = new iCalComponent();
 			$valarm->SetType("VALARM");
+			$valarm->AddProperty("ACTION", "DISPLAY");
 			$valarm->AddProperty("TRIGGER;VALUE=DATE-TIME", gmdate("Ymd\THis\Z", $data->remindertime));
 			$vtodo->AddComponent($valarm);
 		}
@@ -1218,8 +1227,8 @@ class BackendCalDAV extends BackendDiff {
 		}
 		if (!$date)
 		{
-			//20110930
-			$date = date_create_from_format('Ymd', $value, $tz);
+			//20110930 (Append T000000Z to the date, so it starts at midnight)
+			$date = date_create_from_format('Ymd\THis\Z', $value . "T000000Z", $tz);
 		}
 		return date_timestamp_get($date);
 	}
