@@ -37,7 +37,7 @@ class BackendCardDAV extends BackendDiff {
 
 		// Confirm PHP-CURL Installed; If Not, Exit
 		if (!function_exists("curl_init")) {
-			ZLog::Write(LOGLEVEL_INFO, sprintf("ERROR: Carddav Backend requires PHP-CURL"));
+			ZLog::Write(LOGLEVEL_ERROR, sprintf("ERROR: Carddav Backend requires PHP-CURL"));
 			return false;
 		}
 
