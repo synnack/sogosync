@@ -279,7 +279,7 @@ class BackendCalDAV extends BackendDiff {
 	public function ChangeMessage($folderid, $id, $message)
 	{
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCalDAV->ChangeMessage('%s','%s')", $folderid,  $id));
-
+		 
 		if ($id)
 		{
 			$mod = $this->StatMessage($folderid, $id);
@@ -538,13 +538,13 @@ class BackendCalDAV extends BackendDiff {
 					$exception = new SyncAppointmentException();
 					$exception->deleted = "1";
 					$exception->exceptionstarttime = $this->_MakeUTCDate($property->Value());
-					if (isset($message->exceptions) && is_array($message->exceptions))
+					if (isset($message->exception) && is_array($message->exception))
 					{
-						$message->exceptions[] = $exception;
+						$message->exception[] = $exception;
 					}
 					else
 					{
-						$message->exceptions = array($exception);
+						$message->exception = array($exception);
 					}
 					break;
 				
