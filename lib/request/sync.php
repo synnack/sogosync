@@ -95,10 +95,15 @@ class Sync extends RequestProcessor {
                     }
 
                     // SyncKey
-                    if(!self::$decoder->getElementStartTag(SYNC_SYNCKEY))
-                        return false;
-                    $synckey = self::$decoder->getElementContent();
-                    if(!self::$decoder->getElementEndTag())
+                    if(self::$decoder->getElementStartTag(SYNC_SYNCKEY)) {
+                        $synckey = "0";
+                        if (($synckey = self::$decoder->getElementContent()) !== false) {
+                            if(!self::$decoder->getElementEndTag()) {
+                                return false;
+                            }
+                        }
+                    }
+                    else
                         return false;
 
                     // FolderId
@@ -759,6 +764,11 @@ class Sync extends RequestProcessor {
                                 $data = false;
                                 try {
                                     $fetchstatus = SYNC_STATUS_SUCCESS;
+
+                                    // if this is an additional folder the backend has to be setup correctly
+                                    if (!self::$backend->Setup(ZPush::GetAdditionalSyncFolderStore($spa->GetFolderId())))
+                                        throw new StatusException(sprintf("HandleSync(): could not Setup() the backend to fetch in folder id '%s'", $spa->GetFolderId()), SYNC_STATUS_OBJECTNOTFOUND);
+
                                     $data = self::$backend->Fetch($spa->GetFolderId(), $id, $spa->GetCPO());
 
                                     // check if the message is broken
@@ -802,7 +812,7 @@ class Sync extends RequestProcessor {
                         }
 
                         // Stream outgoing changes
-                        if($status == SYNC_STATUS_SUCCESS && $sc->GetParameter($spa, "getchanges") === true && $windowSize > 0) {
+                        if($status == SYNC_STATUS_SUCCESS && $sc->GetParameter($spa, "getchanges") == true && $windowSize > 0) {
                             self::$topCollector->AnnounceInformation(sprintf("Streaming data of %d objects", (($changecount > $windowSize)?$windowSize:$changecount)));
 
                             // Output message changes per folder
