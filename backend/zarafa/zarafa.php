@@ -103,6 +103,7 @@ class BackendZarafa implements IBackend, ISearchProvider {
         $this->changesSinkFolders = array();
         $this->changesSinkStores = array();
         $this->wastebasket = false;
+        $this->session = false;
 
         ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendZarafa using PHP-MAPI version: %s", phpversion("mapi")));
     }
@@ -165,9 +166,11 @@ class BackendZarafa implements IBackend, ISearchProvider {
                 $this->notifications = false;
             }
 
-            if (mapi_last_hresult())
+            if (mapi_last_hresult()) {
                 ZLog::Write(LOGLEVEL_ERROR, sprintf("ZarafaBackend->Logon(): login failed with error code: 0x%X", mapi_last_hresult()));
-
+                if (mapi_last_hresult() == MAPI_E_NETWORK_ERROR)
+                    throw new HTTPReturnCodeException("Error connecting to ZCP (login)", 503, null, LOGLEVEL_INFO);
+            }
         }
         catch (MAPIException $ex) {
             throw new AuthenticationRequiredException($ex->getDisplayMessage());
@@ -181,6 +184,9 @@ class BackendZarafa implements IBackend, ISearchProvider {
 
         // Get/open default store
         $this->defaultstore = $this->openMessageStore($user);
+
+        if (mapi_last_hresult() == MAPI_E_FAILONEPROVIDER)
+            throw new HTTPReturnCodeException("Error connecting to ZCP (open store)", 503, null, LOGLEVEL_INFO);
 
         if($this->defaultstore === false)
             throw new AuthenticationRequiredException(sprintf("ZarafaBackend->Logon(): User '%s' has no default store", $user));
@@ -900,13 +906,15 @@ class BackendZarafa implements IBackend, ISearchProvider {
 
         $this->changesSink = @mapi_sink_create();
 
-        if (! $this->changesSink) {
-            ZLog::Write(LOGLEVEL_DEBUG, "ZarafaBackend->HasChangesSink(): sink could not be created");
+        if (! $this->changesSink || mapi_last_hresult()) {
+            ZLog::Write(LOGLEVEL_DEBUG, sprintf("ZarafaBackend->HasChangesSink(): sink could not be created with  0x%X", mapi_last_hresult()));
             return false;
         }
 
         ZLog::Write(LOGLEVEL_DEBUG, "ZarafaBackend->HasChangesSink(): created");
-        return true;
+
+        // advise the main store and also to check if the connection supports it
+        return $this->adviseStoreToSink($this->defaultstore);
     }
 
     /**
@@ -929,13 +937,8 @@ class BackendZarafa implements IBackend, ISearchProvider {
         // add entryid to the monitored folders
         $this->changesSinkFolders[$entryid] = $folderid;
 
-        // check if this store is already monitored, else advise it
-        if (!in_array($this->store, $this->changesSinkStores)) {
-            mapi_msgstore_advise($this->store, null, fnevObjectModified | fnevObjectCreated | fnevObjectMoved | fnevObjectDeleted, $this->changesSink);
-            $this->changesSinkStores[] = $this->store;
-            ZLog::Write(LOGLEVEL_DEBUG, sprintf("ZarafaBackend->ChangesSinkInitialize(): advised store '%s'", $this->store));
-        }
-        return true;
+        // advise the current store to the sink
+        return $this->adviseStoreToSink($this->store);
     }
 
     /**
@@ -1238,6 +1241,30 @@ class BackendZarafa implements IBackend, ISearchProvider {
      */
 
     /**
+     * Advises a store to the changes sink
+     *
+     * @param mapistore $store              store to be advised
+     *
+     * @access private
+     * @return boolean
+     */
+    private function adviseStoreToSink($store) {
+        // check if we already advised the store
+        if (!in_array($store, $this->changesSinkStores)) {
+            mapi_msgstore_advise($this->store, null, fnevObjectModified | fnevObjectCreated | fnevObjectMoved | fnevObjectDeleted, $this->changesSink);
+            $this->changesSinkStores[] = $store;
+
+            if (mapi_last_hresult()) {
+                ZLog::Write(LOGLEVEL_WARN, sprintf("ZarafaBackend->adviseStoreToSink(): failed to advised store '%s' with code 0x%X. Polling will be performed.", $this->store, mapi_last_hresult()));
+                return false;
+            }
+            else
+                ZLog::Write(LOGLEVEL_DEBUG, sprintf("ZarafaBackend->adviseStoreToSink(): advised store '%s'", $this->store));
+        }
+        return true;
+    }
+
+    /**
      * Open the store marked with PR_DEFAULT_STORE = TRUE
      * if $return_public is set, the public store is opened
      *
@@ -1360,7 +1387,7 @@ class BackendZarafa implements IBackend, ISearchProvider {
             $oofmessage = new SyncOOFMessage();
             $oofmessage->appliesToInternal = "";
             $oofmessage->enabled = $oof->oofstate;
-            $oofmessage->replymessage = w2u(isset($oofprops[PR_EC_OUTOFOFFICE_MSG]) ? $oofprops[PR_EC_OUTOFOFFICE_MSG] : "");
+            $oofmessage->replymessage = (isset($oofprops[PR_EC_OUTOFOFFICE_MSG])) ? w2u($oofprops[PR_EC_OUTOFOFFICE_MSG]) : "";
             $oofmessage->bodytype = $oof->bodytype;
             unset($oofmessage->appliesToExternal, $oofmessage->appliesToExternalUnknown);
             $oof->oofmessage[] = $oofmessage;
@@ -1370,8 +1397,7 @@ class BackendZarafa implements IBackend, ISearchProvider {
         }
 
         //unset body type for oof in order not to stream it
-        unset($oof->bodyType);
-
+        unset($oof->bodytype);
     }
 
     /**
