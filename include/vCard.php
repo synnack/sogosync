@@ -5,7 +5,7 @@
  * @link https://github.com/nuovo/vCard-parser
  * @author Martins Pilsetnieks, Roberts Bruveris
  * @see RFC 2426, RFC 2425
- * @version 0.4.5
+ * @version 0.4.6
 */
 	class vCard implements Countable, Iterator
 	{
@@ -201,6 +201,13 @@
 					$KeyParts = explode(';', $Key);
 					$Key = $KeyParts[0];
 					$Encoding = false;
+
+					if (strpos($Key, 'item') === 0)
+					{
+						$TmpKey = explode('.', $Key, 2);
+						$Key = $TmpKey[1];
+						$ItemIndex = (int)str_ireplace('item', '' $TmpKey[0]);
+					}
 
 					if (count($KeyParts) > 1)
 					{
