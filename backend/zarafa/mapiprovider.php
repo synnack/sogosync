@@ -412,7 +412,7 @@ class MAPIProvider {
                 $exceptionatt = $recurrence->getExceptionAttachment($change["basedate"]);
                 if($exceptionatt) {
                     $exceptionobj = mapi_attach_openobj($exceptionatt, 0);
-                    $exception->body = mapi_openproperty($exceptionobj, PR_BODY);
+                    $this->setMessageBodyForType($exceptionobj, SYNC_BODYPREFERENCE_PLAIN, $exception);
                 }
             }
             if(isset($change["subject"]))
@@ -2131,8 +2131,8 @@ class MAPIProvider {
             $message->asbody->type = $bpReturnType;
             if ($bpReturnType == SYNC_BODYPREFERENCE_RTF)
                 $message->asbody->data = base64_encode($body);
-            elseif (isset($message->internetcpid) && $message->internetcpid == INTERNET_CPID_WINDOWS1252 && $bpReturnType == SYNC_BODYPREFERENCE_HTML)
-                $message->asbody->data = windows1252_to_utf8($body, "", true);
+            elseif (isset($message->internetcpid) && $bpReturnType == SYNC_BODYPREFERENCE_HTML)
+                $message->asbody->data = Utils::ConvertCodepageStringToUtf8($message->internetcpid, $body);
             else
                 $message->asbody->data = w2u($body);
             $message->asbody->estimatedDataSize = strlen($message->asbody->data);
@@ -2179,6 +2179,7 @@ class MAPIProvider {
                 unset($message->body, $message->bodytruncated);
                 return true;
             }
+            ZLog::Write(LOGLEVEL_WARN, sprintf("Your request (%d bytes) exceeds the value for inline attachments (%d bytes). You can change the value of MAX_EMBEDDED_SIZE in config.php", $mstreamstat['cb'], MAX_EMBEDDED_SIZE));
         }
         return false;
     }
