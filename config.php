@@ -118,6 +118,29 @@
     // This can also be disabled by setting it to false
     define('SINK_FORCERECHECK', 300);
 
+    // Set the fileas order contacts. Possible values are:
+    // SYNC_FILEAS_FIRSTLAST    - fileas will be "Firstname Middlename Lastname"
+    // SYNC_FILEAS_LASTFIRST    - fileas will be "Lastname, Firstname Middlename"
+    // SYNC_FILEAS_COMPANYONLY  - fileas will be "Company"
+    // SYNC_FILEAS_COMPANYLAST  - fileas will be "Company (Lastname, Firstname Middlename)"
+    // SYNC_FILEAS_COMPANYFIRST - fileas will be "Company (Firstname Middlename Lastname)"
+    // SYNC_FILEAS_LASTCOMPANY  - fileas will be "Lastname, Firstname Middlename (Company)"
+    // SYNC_FILEAS_FIRSTCOMPANY - fileas will be "Firstname Middlename Lastname (Company)"
+    // The company-fileas will only be set if a contact has a company set. If one of
+    // company-fileas is selected and a contact doesn't have a company set, it will default
+    // to SYNC_FILEAS_FIRSTLAST or SYNC_FILEAS_LASTFIRST (depending on if last or first
+    // option is selected for company).
+    // If SYNC_FILEAS_COMPANYONLY is selected and company of the contact is not set
+    // SYNC_FILEAS_FIRSTLAST will be used
+    define('FILEAS_ORDER', SYNC_FILEAS_FIRSTLAST);
+
+    // Amount of items to be synchronized per request
+    // Normally this value is requested by the mobile. Common values are 5, 25, 50 or 100.
+    // Exporting too much items can cause mobile timeout on busy systems.
+    // Z-Push will use the lowest value, either set here or by the mobile.
+    // default: 100 - value used if mobile does not limit amount of items
+    define('SYNC_MAX_ITEMS', 100);
+
 /**********************************************************************************
  *  Backend settings
  */
