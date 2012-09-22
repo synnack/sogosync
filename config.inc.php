@@ -47,6 +47,16 @@
     // Defines the default time zone, change e.g. to "Europe/London" if necessary
     define('TIMEZONE', '');
 
+    // Define the include paths
+    ini_set('include_path',
+    BASE_PATH. "include/" . PATH_SEPARATOR .
+    BASE_PATH. PATH_SEPARATOR .
+    ini_get('include_path') . PATH_SEPARATOR .
+    "/usr/share/php/" . PATH_SEPARATOR .
+    "/usr/share/php5/" . PATH_SEPARATOR .
+    "/usr/share/pear/" . PATH_SEPARATOR .
+    "/usr/share/awl/inc");
+
     // Defines the base path on the server
     define('BASE_PATH', dirname($_SERVER['SCRIPT_FILENAME']). '/');
 
