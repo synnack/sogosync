@@ -500,7 +500,7 @@ class carddav_backend
 			curl_setopt($this->curl, CURLOPT_SSL_VERIFYHOST, false);
 			curl_setopt($this->curl, CURLOPT_SSL_VERIFYPEER, false);
 			curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
-			curl_setopt($this->curl, CURLOPT_USERAGENT);
+			curl_setopt($this->curl, CURLOPT_USERAGENT, self::USERAGENT);
 
 			if ($this->auth !== null)
 			{
