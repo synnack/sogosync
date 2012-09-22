@@ -20,7 +20,7 @@ include_once('iCalendar.php');
 
 class BackendCalDAV extends BackendDiff {
 	// SOGoSync version
-	const SOGOSYNC_VERSION = '0.4.0';
+	const SOGOSYNC_VERSION = '0.5.0';
 	// SOGoSync vcard Prodid
 	const SOGOSYNC_PRODID = 'SOGoSync';
 
@@ -196,9 +196,8 @@ class BackendCalDAV extends BackendDiff {
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCalDAV->GetMessageList('%s','%s')", $folderid, $cutoffdate));
 
 		/* Calculating the range of events we want to sync */
-		$begin = date("Ymd\THis\Z", $cutoffdate);
-		$diff = time() - $cutoffdate;
-		$finish = date("Ymd\THis\Z", 2147483647);
+		$begin = gmdate("Ymd\THis\Z", $cutoffdate);
+		$finish = gmdate("Ymd\THis\Z", 2147483647);
 
 		$path = $this->_caldav_path . substr($folderid, 1) . "/";
 		if ($folderid[0] == "C")
@@ -382,7 +381,11 @@ class BackendCalDAV extends BackendDiff {
 				$exception->exceptionstarttime = $this->_MakeUTCDate($recurrence_id->Value(), $tzid);
 				$exception->deleted = "0";
 				$exception = $this->_ParseVEventToSyncObject($event, $exception, $truncsize);
-				$message->exception[] = $exception;
+				if (!isset($message->exceptions))
+				{
+					$message->exceptions = array();
+				}
+				$message->exceptions[] = $exception;
 			}
 			else
 			{
@@ -538,14 +541,11 @@ class BackendCalDAV extends BackendDiff {
 					$exception = new SyncAppointmentException();
 					$exception->deleted = "1";
 					$exception->exceptionstarttime = $this->_MakeUTCDate($property->Value());
-					if (isset($message->exception) && is_array($message->exception))
+					if (!isset($message->exceptions))
 					{
-						$message->exception[] = $exception;
+						$message->exceptions = array();
 					}
-					else
-					{
-						$message->exception = array($exception);
-					}
+					$message->exceptions[] = $exception;
 					break;
 				
 				//We can ignore the following
@@ -715,16 +715,24 @@ class BackendCalDAV extends BackendDiff {
 		{
 			$vevent = $this->_ParseASEventToVEvent($data, $id);
 			$vevent->AddProperty("UID", $id);
-			if (isset($data->exception) && is_array($data->exception))
+			$ical->AddComponent($vevent);
+			if (isset($data->exceptions) && is_array($data->exceptions))
 			{
-				foreach ($data->exception as $ex)
+				foreach ($data->exceptions as $ex)
 				{
 					$exception = $this->_ParseASEventToVEvent($ex, $id);
-					$exception->AddProperty("RECURRENCE-ID", $ex->exceptionstarttime);
-					$vevent->AddComponent($exception);
+					if ($data->alldayevent == 1)
+					{
+						$exception->AddProperty("RECURRENCE-ID", $this->_GetDateFromUTC("Ymd", $ex->exceptionstarttime, $data->timezone), array("VALUE" => "DATE"));
+					}
+					else
+					{
+						$exception->AddProperty("RECURRENCE-ID", gmdate("Ymd\THis\Z", $ex->exceptionstarttime));
+					}
+					$exception->AddProperty("UID", $id);
+					$ical->AddComponent($exception);
 				}
 			}
-			$ical->AddComponent($vevent);
 		}
 		if ($folderid[0] == "T")
 		{
@@ -755,7 +763,14 @@ class BackendCalDAV extends BackendDiff {
 		}
 		if (isset($data->starttime))
 		{
-			$vevent->AddProperty("DTSTART", gmdate("Ymd\THis\Z", $data->starttime));
+			if ($data->alldayevent == 1)
+			{
+				$vevent->AddProperty("DTSTART", $this->_GetDateFromUTC("Ymd", $data->starttime, $data->timezone), array("VALUE" => "DATE"));
+			}
+			else
+			{
+				$vevent->AddProperty("DTSTART", gmdate("Ymd\THis\Z", $data->starttime));
+			}
 		}
 		if (isset($data->subject))
 		{
@@ -778,7 +793,14 @@ class BackendCalDAV extends BackendDiff {
 		}
 		if (isset($data->endtime))
 		{
-			$vevent->AddProperty("DTEND", gmdate("Ymd\THis\Z", $data->endtime));
+			if ($data->alldayevent == 1)
+			{
+				$vevent->AddProperty("DTEND", $this->_GetDateFromUTC("Ymd", $data->endtime, $data->timezone), array("VALUE" => "DATE"));
+			}
+			else
+			{
+				$vevent->AddProperty("DTEND", gmdate("Ymd\THis\Z", $data->endtime));
+			}
 		}
 		if (isset($data->recurrence))
 		{
@@ -819,7 +841,7 @@ class BackendCalDAV extends BackendDiff {
 			$valarm->SetType("VALARM");
 			$valarm->AddProperty("ACTION", "DISPLAY");
 			$trigger = "-PT" . $data->reminder . "M";
-			$valarm->AddProperty("TRIGGER;VALUE=DURATION", $trigger);
+			$valarm->AddProperty("TRIGGER", $trigger);
 			$vevent->AddComponent($valarm);
 		}
 		if (isset($data->rtf))
@@ -902,7 +924,7 @@ class BackendCalDAV extends BackendDiff {
 		}
 		if (isset($rec->until))
 		{
-			$rrule[] = "UNTIL=" . $rec->until;
+			$rrule[] = "UNTIL=" . gmdate("Ymd\THis\Z", $rec->until);
 		}
 		if (isset($rec->occurrences))
 		{
@@ -1232,6 +1254,14 @@ class BackendCalDAV extends BackendDiff {
 		}
 		return date_timestamp_get($date);
 	}
+
+	private function _GetDateFromUTC($format, $date, $tz_str)
+	{
+		$timezone = $this->_GetTimezoneFromString($tz_str);
+		$dt = date_create('@' . $date);
+		date_timezone_set($dt, timezone_open($timezone));
+		return date_format($dt, $format);
+	}
 	
 	/**
 	 * Generate a tzid from various formats
@@ -1256,6 +1286,26 @@ class BackendCalDAV extends BackendDiff {
 			return $matches[1] . "/" . $matches[2];
 		}
 		return trim($timezone, '"');
+	}
+
+	//This returns a timezone that matches the timezonestring.
+	//We can't be sure this is the one you chose, as multiple timezones have same timezonestring
+	private function _GetTimezoneFromString($tz_string)
+	{
+		//Get a list of all timezones
+		$identifiers = DateTimeZone::listIdentifiers();
+		//Try the default timezone first
+		array_unshift($identifiers, date_default_timezone_get());
+		foreach ($identifiers as $tz)
+		{
+			$str = $this->_GetTimezoneString($tz, false);
+			if ($str == $tz_string)
+			{
+				ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendCalDAV->_GetTimezoneFromString(): Found timezone: '%s'.", $tz));
+				return $tz;
+			}
+		}
+		return date_default_timezone_get();
 	}
 
 	/**
@@ -1290,15 +1340,13 @@ class BackendCalDAV extends BackendDiff {
 				$stdTime = $trans[1];
 			}
 			$stdTimeO = new DateTime($stdTime['time']);
-			$stdFirst = new DateTime(sprintf("first sun of %s %s", $stdTimeO->format('F'), $stdTimeO->format('Y')));
-			$stdInterval = $stdTimeO->diff($stdFirst);
-			$stdDays = $stdInterval->format('%d');
+			$stdFirst = new DateTime(sprintf("first sun of %s %s", $stdTimeO->format('F'), $stdTimeO->format('Y')), timezone_open("UTC"));
 			$stdBias = $stdTime['offset'] / -60;
 			$stdName = $stdTime['abbr'];
 			$stdYear = 0;
 			$stdMonth = $stdTimeO->format('n');
-			$stdWeek = floor($stdDays/7)+1;
-			$stdDay = $stdDays%7;
+			$stdWeek = floor(($stdTimeO->format("j")-$stdFirst->format("j"))/7)+1;
+			$stdDay = $stdTimeO->format('w');
 			$stdHour = $stdTimeO->format('H');
 			$stdMinute = $stdTimeO->format('i');
 			$stdTimeO->add(new DateInterval('P7D'));
@@ -1307,16 +1355,15 @@ class BackendCalDAV extends BackendDiff {
 				$stdWeek = 5;
 			}
 			$dstTimeO = new DateTime($dstTime['time']);
-			$dstFirst = new DateTime(sprintf("first sun of %s %s", $dstTimeO->format('F'), $dstTimeO->format('Y')));
-			$dstInterval = $dstTimeO->diff($dstFirst);
-			$dstDays = $dstInterval->format('%d');
+			$dstFirst = new DateTime(sprintf("first sun of %s %s", $dstTimeO->format('F'), $dstTimeO->format('Y')), timezone_open("UTC"));
 			$dstName = $dstTime['abbr'];
 			$dstYear = 0;
 			$dstMonth = $dstTimeO->format('n');
-			$dstWeek = floor($dstDays/7)+1;
-			$dstDay = $dstDays%7;
+			$dstWeek = floor(($dstTimeO->format("j")-$dstFirst->format("j"))/7)+1;
+			$dstDay = $dstTimeO->format('w');
 			$dstHour = $dstTimeO->format('H');
 			$dstMinute = $dstTimeO->format('i');
+			$dstTimeO->add(new DateInterval('P7D'));
 			if ($dstTimeO->format('n') != $dstMonth)
 			{
 				$dstWeek = 5;
