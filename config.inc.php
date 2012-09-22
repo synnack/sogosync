@@ -50,21 +50,11 @@
     // Defines the base path on the server
     define('BASE_PATH', dirname($_SERVER['SCRIPT_FILENAME']). '/');
 
-   // Define the include paths
-   ini_set('include_path',
-   BASE_PATH. "include/" . PATH_SEPARATOR .
-   BASE_PATH. PATH_SEPARATOR .
-   ini_get('include_path') . PATH_SEPARATOR .
-   "/usr/share/php/" . PATH_SEPARATOR .
-   "/usr/share/php5/" . PATH_SEPARATOR .
-   "/usr/share/pear/" . PATH_SEPARATOR .
-   "/usr/share/awl/inc");
-
     // Try to set unlimited timeout
     define('SCRIPT_TIMEOUT', 0);
 
-    //Max size of attachments to display inline. Default is 1MB
-    define('MAX_EMBEDDED_SIZE', 1048576);
+    //Max size of attachments to display inline. Default is 2 MB
+    define('MAX_EMBEDDED_SIZE', 2097152);
 
 
 /**********************************************************************************
@@ -128,6 +118,29 @@
     // This can also be disabled by setting it to false
     define('SINK_FORCERECHECK', 300);
 
+    // Set the fileas order contacts. Possible values are:
+    // SYNC_FILEAS_FIRSTLAST    - fileas will be "Firstname Middlename Lastname"
+    // SYNC_FILEAS_LASTFIRST    - fileas will be "Lastname, Firstname Middlename"
+    // SYNC_FILEAS_COMPANYONLY  - fileas will be "Company"
+    // SYNC_FILEAS_COMPANYLAST  - fileas will be "Company (Lastname, Firstname Middlename)"
+    // SYNC_FILEAS_COMPANYFIRST - fileas will be "Company (Firstname Middlename Lastname)"
+    // SYNC_FILEAS_LASTCOMPANY  - fileas will be "Lastname, Firstname Middlename (Company)"
+    // SYNC_FILEAS_FIRSTCOMPANY - fileas will be "Firstname Middlename Lastname (Company)"
+    // The company-fileas will only be set if a contact has a company set. If one of
+    // company-fileas is selected and a contact doesn't have a company set, it will default
+    // to SYNC_FILEAS_FIRSTLAST or SYNC_FILEAS_LASTFIRST (depending on if last or first
+    // option is selected for company).
+    // If SYNC_FILEAS_COMPANYONLY is selected and company of the contact is not set
+    // SYNC_FILEAS_FIRSTLAST will be used
+    define('FILEAS_ORDER', SYNC_FILEAS_FIRSTLAST);
+
+    // Amount of items to be synchronized per request
+    // Normally this value is requested by the mobile. Common values are 5, 25, 50 or 100.
+    // Exporting too much items can cause mobile timeout on busy systems.
+    // Z-Push will use the lowest value, either set here or by the mobile.
+    // default: 100 - value used if mobile does not limit amount of items
+    define('SYNC_MAX_ITEMS', 100);
+
 /**********************************************************************************
  *  Backend settings
  */
@@ -175,27 +188,27 @@
     // **********************
     define('VCARDDIR_DIR', '/home/%u/.kde/share/apps/kabc/stdvcf');
 
-    // ******************************
-    // BackendCalDAV settings
-    // ******************************
-    // %u is replaced by the username
-    // Using HTTPS URL is recommended
-    define('CALDAV_SERVER', 'http://sogo-demo.inverse.ca');
-    define('CALDAV_PATH', '/SOGo/dav/%u/');
-    define('CALDAV_PERSONAL', 'personal');
-    define('CALDAV_URL', 'http://sogo-demo.inverse.ca/SOGo/dav/%u/');
-    // Will ignore any change made on the mobile (true|false)
-    define('CALDAV_READONLY', false);
+	// ******************************
+	// BackendCalDAV settings
+	// ******************************
+	// %u is replaced by the username
+	// Using HTTPS URL is recommended
+	define('CALDAV_SERVER', 'http://sogo-demo.inverse.ca');
+	define('CALDAV_PATH', '/SOGo/dav/%u/');
+	define('CALDAV_PERSONAL', 'personal');
+	define('CALDAV_URL', 'http://sogo-demo.inverse.ca/SOGo/dav/%u/');
+	// Will ignore any change made on the mobile (true|false)
+	define('CALDAV_READONLY', false);
 
-    // ******************************
-    // BackendCalDAV settings
-    // ******************************
-    // %u is replaced by the username
-    // Using HTTPS is recommended
-    define('CARDDAV_PERSONAL', 'personal');
-    define('CARDDAV_URL', 'http://sogo-demo.inverse.ca/SOGo/dav/%u/Contacts/');
-    // Will ignore any change made on the mobile (true|false)
-    define('CARDDAV_READONLY', false);
+	// ******************************
+	// BackendCalDAV settings
+	// ******************************
+	// %u is replaced by the username
+	// Using HTTPS is recommended
+	define('CARDDAV_PERSONAL', 'personal');
+	define('CARDDAV_URL', 'http://sogo-demo.inverse.ca/SOGo/dav/%u/Contacts/');
+	// Will ignore any change made on the mobile (true|false)
+	define('CARDDAV_READONLY', false);
 
 /**********************************************************************************
  *  Search provider settings
