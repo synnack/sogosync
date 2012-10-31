@@ -35,7 +35,7 @@ class BackendCalDAV extends BackendDiff {
 	 */
 	public function Logon($username, $domain, $password)
 	{
-		ZLog::Write(LOGLEVEL_INFO, sprintf("BackendCardDAV->%s version %s", self::SOGOSYNC_PRODID, self::SOGOSYNC_VERSION));
+		ZLog::Write(LOGLEVEL_INFO, sprintf("BackendCalDAV->%s version %s", self::SOGOSYNC_PRODID, self::SOGOSYNC_VERSION));
 		$this->_username = $username;
 		$this->_caldav_path = str_replace('%u', $username, CALDAV_PATH);
 		$this->_caldav_path = $this->_caldav_path . "Calendar/";
