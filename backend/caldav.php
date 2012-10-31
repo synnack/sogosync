@@ -1213,7 +1213,7 @@ class BackendCalDAV extends BackendDiff {
 			$rtfparser->loadrtf(base64_decode($data->rtf));
 			$rtfparser->output("ascii");
 			$rtfparser->parse();
-			$vevent->AddProperty("DESCRIPTION", $rtfparser->out);
+			$vtodo->AddProperty("DESCRIPTION", $rtfparser->out);
 		}
 		if (isset($data->categories) && is_array($data->categories))
 		{
