@@ -48,6 +48,8 @@ ob_start(null, 1048576);
 // ignore user abortions because this can lead to weird errors - see ZP-239
 ignore_user_abort(true);
 
+include_once('config.php');
+
 include_once('lib/exceptions/exceptions.php');
 include_once('lib/utils/utils.php');
 include_once('lib/utils/compat.php');
@@ -112,7 +114,6 @@ include_once('lib/default/searchprovider.php');
 include_once('lib/request/request.php');
 include_once('lib/request/requestprocessor.php');
 
-include_once('config.php');
 include_once('version.php');
 
 
