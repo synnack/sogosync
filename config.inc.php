@@ -41,11 +41,16 @@
 * Consult LICENSE file for details
 ************************************************/
 
+include("lib/core/zpushdefs.php");
+
 /**********************************************************************************
  *  Default settings
  */
     // Defines the default time zone, change e.g. to "Europe/London" if necessary
     define('TIMEZONE', '');
+
+    // Defines the base path on the server
+    define('BASE_PATH', dirname($_SERVER['SCRIPT_FILENAME']). '/');
 
     // Define the include paths
     ini_set('include_path',
@@ -56,9 +61,6 @@
     "/usr/share/php5/" . PATH_SEPARATOR .
     "/usr/share/pear/" . PATH_SEPARATOR .
     "/usr/share/awl/inc");
-
-    // Defines the base path on the server
-    define('BASE_PATH', dirname($_SERVER['SCRIPT_FILENAME']). '/');
 
     // Try to set unlimited timeout
     define('SCRIPT_TIMEOUT', 0);
