@@ -87,6 +87,8 @@ Clone from github:
 
 Read the Z-Push install instructions in the INSTALL file, or this document: [Configure Z-Push (Remote ActiveSync for Mobile Devices)](http://doc.zarafa.com/7.0/Administrator_Manual/en-US/html/_zpush.html)
 
+Note: Z-Push is mean to be use with mod_php, if using FastCGI, additional configuration are need in Apache, please refer to the [wiki](https://github.com/xbgmsharp/sogosync/wiki).
+
 
 Configuration
 -------------
