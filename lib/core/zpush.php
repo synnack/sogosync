@@ -324,9 +324,15 @@ class ZPush {
                     throw new FatalNotImplementedException("State machine returned by the backend does not implement the IStateMachine interface!");
             }
             else {
-                // Initialize the default StateMachine
-                include_once('lib/default/filestatemachine.php');
-                ZPush::$stateMachine = new FileStateMachine();
+                if (defined('STATEMACHINE') && STATEMACHINE == 'SQL') {
+                    // Initialize the default StateMachine
+                    include_once('lib/default/sqlstatemachine.php');
+                    ZPush::$stateMachine = new SqlStateMachine();
+                } else {
+                    // Initialize the default StateMachine
+                    include_once('lib/default/filestatemachine.php');
+                    ZPush::$stateMachine = new FileStateMachine();
+                }
             }
         }
         return ZPush::$stateMachine;
